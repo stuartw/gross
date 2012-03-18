@@ -1,0 +1,14 @@
+*** Tested with gcc 3.2.2 ***
+If you need to install the MySQL server execute scripts/installMySQL.sh
+execute "make config" 
+        --> creates the configuration files
+execute "make"
+        --> builds libraries and binaries and configures the database
+execute the mysql command as suggested by the output of the previous step
+        --> creates the DB users and tables
+execute "source bossenv.csh" or ". bossenv.sh" 
+        --> sets the environment
+execute "cd sched_examples; ./registerForkScheduler" 
+        --> register the "fork" scheduler
+
+

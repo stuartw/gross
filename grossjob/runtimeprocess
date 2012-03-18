@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+$|=1;
+while ( <STDIN> ) {
+  
+  if($_ =~ /.*orca_grid_wrapper:CHECKPOINT:\s+(\w+).*/)  {
+      $val = $1;
+      print "last_checkpoint = $val\n";
+  }
+ 
+  if($_ =~ /.*orca_grid_wrapper:ERROR:\s+(\w+).*/)  {
+      $val = $1;
+      print "last_error = $val\n";
+  }
+
+  if($_ =~ /.*orca_grid_wrapper:WARNING:\s+(\w+).*/)  {
+      $val = $1;
+      print "last_warning = $val\n";
+  }
+}
+

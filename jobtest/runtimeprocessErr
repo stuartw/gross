@@ -1,0 +1,14 @@
+#!/usr/bin/perl
+
+$|=1;
+while ( <STDIN> ) {
+  
+  if      ($_ =~ /.*Outcounter\s+(\d+).*/)  {
+      $val = $1;
+      print "counter = $val\n"; 
+  } elsif ($_ =~ /.*Errcounter\s+(\d+).*/)  {
+      $val = $1;
+      print "ecounter = $val\n"; 
+  }
+}
+

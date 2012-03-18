@@ -1,0 +1,5 @@
+#!/bin/sh
+
+boss registerJob -name test -schema schema -pre preprocess -post postprocess -runtime runtimeprocess -comment "Standard test job"
+
+

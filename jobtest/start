@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+$| = 1;
+$i = 0;
+$f = $ARGV[0];
+print $1;
+while ( $i < $f ) {
+  system "boss s -jobtype test -executable test.pl -stdin in -stdout out.$i -stderr err.$i -args 200";
+  $i++; 
+}
+
+

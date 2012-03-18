@@ -1,0 +1,20 @@
+# My job
+  executable = "test.pl";
+  stdin = "in";
+  stdout = "out";
+  stderr = "err";
+  args = "40";
+  jobtype = "test,testErr";
+  log = "test.log";
+#  host = "pccms10";
+#  AnotherKey = "AnotherValue";
+ BossAttr = {
+  [
+    BossNamespace = test;
+    counter=9999;
+  ],
+  [
+    BossNamespace = testErr;
+    counter=9998;
+  ] }
+

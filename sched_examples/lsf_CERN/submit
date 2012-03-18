@@ -1,0 +1,57 @@
+#!/usr/local/bin/perl5 -w 
+
+$len=@ARGV;
+if($len==4) {
+    $executable = "$ENV{BOSSDIR}/bin/jobExecutor";
+    $jid = $ARGV[0];
+    $logfile = $ARGV[1];
+    $jobname=$logfile;
+    $jobname =~ s/\.log//;
+    $host = $ARGV[2];
+    $hoststring="";
+    $topwdir = $ARGV[3];
+    $dir = `pwd`;
+    chomp $dir;
+    $domain = ` dnsdomainname`;
+    chomp($domain);
+    if ( $host ne "NULL" ) { 
+        if ( $host =~ /\s+\.\s+/ ) {
+            $hoststring="-m $host";
+        } else {
+            $hoststring="-m $host.$domain";
+        }
+    }
+    @datasetname=split(m#/#,$logfile);
+     $shortlog=$datasetname[$#datasetname];
+     $_=$datasetname[$#datasetname];
+    /\_(\d+)\./;
+    $datasetname=$`;
+# lsflogs directory is used for the headers  of log files which are not attached
+# to the log files after the pipe is closed and if we don't take care about them they
+# would be returned to the directory from where jobs were submitted, which is not good
+    $lsflogdir="lsflogs/$datasetname";
+#    print MYOUT "datasetname is $datasetname\n";
+#    if ( -d "OODigi/$datasetname" ){
+#	$logfile="OODigi/$datasetname/batch/lsflogs/$shortlog";}
+#    elsif ( -d "OOHit/$datasetname" ){
+#        $logfile="OOHit/$datasetname/batch/lsflogs/$shortlog";}
+		       if (!(-d $lsflogdir)) {
+                           if  (!( -d "lsflogs" )){
+			       mkdir  "lsflogs", 0777;}
+			   mkdir $lsflogdir, 0777;}
+		       $logfile="$lsflogdir/$shortlog";
+    $subcmd = "bsub -J $jobname -q zh_cmsprod -o $logfile -e $logfile $executable $jid  $dir $topwdir |";
+    # open a pipe to read the stdout of bsub
+    open (SUB, $subcmd);
+    # find job id
+    $_ = <SUB>;
+    if ( $_ =~ /Job \<(\d+)\>\s+is submitted\s+/ ) {
+        print $1;
+    } else {
+        print "error";
+    }
+
+    # close the file handles
+    close(SUB);
+} 
+

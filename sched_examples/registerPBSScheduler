@@ -1,0 +1,3 @@
+#!/bin/sh
+
+boss registerScheduler -name pbs -submit pbs_submit.pl -query pbs_query.pl -kill pbs_kill.pl -default -topwdir . 

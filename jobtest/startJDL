@@ -1,0 +1,3 @@
+#! /bin/sh
+
+boss s -jobtype test -classad test.jdl

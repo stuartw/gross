@@ -1,0 +1,10 @@
+#
+#   -----  Job Description File   -----
+#
+Executable = "test.pl";
+Arguments = "120";
+StdInput = "in";
+StdOutput = "edg.out";
+StdError = "edg.err";
+InputSandbox = {"test.pl","in"};
+OutputSandbox = {"edg.out","edg.err"};

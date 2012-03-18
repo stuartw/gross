@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+
+$val{"comment"} = "...STOP";
+while ( <STDIN> ) {
+  
+  if      ($_ =~ /.*Outcounter\s+(\d+).*/)  {
+      $val{"counter"} = $1;
+  } elsif ($_ =~ /.*Errcounter\s+(\d+).*/)  {
+      $val{"ecounter"} = $1;
+  }
+
+}
+foreach $key (sort keys %val) {
+    print "$key=\"$val{$key}\";\n";
+}
+

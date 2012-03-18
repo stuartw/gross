@@ -1,0 +1,16 @@
+#!/usr/bin/perl
+
+while ( <STDIN> ) {
+  
+  if($_ =~ /.*counter\s+(\d+).*/)  {
+      print "counter = ";
+      print $1;
+      print "\n";
+  }
+  if($_ =~ /.*comment\s+(.+).*/) {
+      print "comment = ";
+      print $1;
+      print "\n";
+  }
+}
+

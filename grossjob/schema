@@ -1,0 +1,5 @@
+# schema definition file
+
+last_error : string, last_warning : string, last_checkpoint: string
+
+

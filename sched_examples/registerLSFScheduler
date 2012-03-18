@@ -1,0 +1,3 @@
+#!/bin/sh
+
+boss registerScheduler -name lsf -submit lsf_submit.pl -query lsf_query.pl -kill lsf_kill.pl -default -topwdir .

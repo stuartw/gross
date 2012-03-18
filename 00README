@@ -1,0 +1,168 @@
+                            =============
+                             BOSS v3_3_9
+                            =============
+
+See documentation at http://www.bo.infn.it/cms/computing/BOSS/
+
+Release notes
+=============
+   * Version 3.3.9
+        o protection against boss processes hanging in jobExecutor
+   * Version 3.3.8
+        o *** compiles with gcc 3.2.2 ***
+        o use namespace std as appropriate
+        o using a local copy of pstream from sourceForge instead of ipfstream
+        o including cstdio, cstdlib, ctime instead of stdio.h, stdlib.h, time.h
+        o including iostream, sstream, fstream instead of stream.h, 
+          strstream.h, fstream.h 
+        o removing use of "dec" and using a private version (convert2string)
+	o modify BossLabellerProcess to read from a pipe with "1-char" buffer
+	o protect against failures of getuid()
+        o scheduler registration examples in sched_examples use "-topwdir ."
+        o working directories are BossJob_<jobid> instead of <jobid> only
+        o BOSS archive file is removed at end of execution to allow job restart
+        o Add printout in BossLabellerProcess
+        o using classad 0.9.5 recompiled from source at installation time
+        o installation instructions in 00INSTALL-BIN and 00INSTALL-SRC
+        o minor bug fixes
+   * Version 3.3.7
+        o  support for binary distribution:
+           - Configuration file is $BOSSDIR/CossConfig.clad
+             and is in ClassAd format (not a shell script as before)
+           - MySQL contact information are not hardcoded in the executables
+             but stored in the configuration file $BOSSDIR/BossConfig.clad
+           - boss executables look for the BossConfig.clad file in:
+             1) the local directory
+             2) the home directory
+             3) the $BOSSDIR directory
+             A copy of BossConfig.clad is stored in the job archive at
+             submission time and thus is available in a grid environment
+           - PLEASE NOTE THAT MYSQL PASSWORD ARE VISIBLE IN BossConfig.clad
+        o installation instructions in 00INSTALL
+
+   * Version 3.3.6
+        o  added BossAttr attribute in classad file to allow job specific 
+           information to be set at submission time. See jobtest/test.clad
+           for an example.
+   * Version 3.3.5
+        o  fix bug in pbs_submit.pl example
+        o  include pbs examples from RAL
+        o  fix bug in use of InnoDB tables
+        o  use quotes around variables in SQL commands (fixes problem using
+           hostnames with dashes
+        o  install MySQL 4.0.12 instead of 3.23.49
+        o  jobExecutor prints a message to the log file at the beginning
+           of the execution to help tracing problems
+   * Version 3.3.4
+        o  dbUpdator is killed BOSS_UPD_INTERVAL*BOSS_MAX_RETRY seconds
+           after post-process finishes (if it doesn't exit before)
+        o  dbUpdator is also used if found in the same directory of jobExecutor
+           even if not in the path of the running process
+        o  protect against disappearence of stdin/out/err files during 
+           processing
+        o  allow removal of registered jobtype filters (using SKIP)
+   * Version 3.3
+        o  name of the BOSS wrapper changed from jobExecuter to jobExecutor
+        o  journaling: a file BossJournal_<BOSSID>.txt is created in the 
+           working directory. "bss recoverJob -journal <journalfile>" fills 
+           the DB with the info of the journal
+        o  not all the filter scripts need to be registered to boss. If one 
+           is missing simply that filtering step is not executed. This is 
+           useful if one wants to run only post-processing and not runtime 
+           processing.
+        o  If runtime DB updating is not wanted it is enough not to compile 
+           the dbUpdator executable (or delete it from the bin directory). 
+           jobExecutor will run writing the journal and will not complain.
+        o  all relevant files needed at runtime (e.g. filters) are extracted 
+           frm the DB at submission time and packed in a file 
+           BossArchive_<BOSSID>.tgz  which is unpacked at the time the job 
+           starts
+        o  the top_working_directory is passed as argument to jobExecutor (and
+           to the submit script) instead of being read from the DB at runtime. 
+           The submit scripts in sched_examples have been updated accordingly 
+           THE SUBMIT SCRITPS ARE NOT BACKWARD COMPATIBLE!!!
+        o  as a consequence of all these changes the job can start on the 
+           execution host even if the MySQL server is down.
+        o  the registerScheduler and registerJob may be executed on 
+           schedulers/jobtypes already registered with fewer arguments. In 
+           this case the missing fileds keep the old value
+        o  added boss deleteScheduler and boss deleteJobType commands
+        o  boss query is more robust against jobs with missing scheduler or 
+           missing specific tables (e.g. after a boss deleteJobType)
+        o  In case a job has multiple types and the same variable (i.e. column
+           name) is present in more than one, only the correct table is updated
+           (previously all instances of variables with the same name were
+           updated everytime one had to be updated).
+        THE DATABASE TABLES ARE BACKWARD COMPATIBLE since version 2.2.1
+
+   * Version 3.2
+        o boss registerJobType on an existing job type doesn't delete the 
+          MySQL table if the -schema option is not used
+        o Runtime updates are done at fixed intervals
+        o New option -statusOnly for boss query command
+        o Fixed bug in MySQL access during initialization 
+          (with non-default port or socket)
+        o Use of InnoDB instead of MyISAM in MySQL is possible.
+          The MySQL server shipped with boss DOESN'T support InnoDB
+        o New boss declare command (and boss submit -jobid option)
+          for two-steps submission 
+   * Version 3.1
+        o Internal test release. Not distributed
+   * Version 3.0
+        o All temporary files go to $BOSS_TMP_DIR which is a configurable
+          directory name.
+        o Job submission through a job description file based on the ClassAd
+          sintax
+        o Support for submission of jobs to EU-DataGrid software.
+          ${BOSSDIR}/MySQLGridConfig.sql files configures MySQL server to
+          grant access from any site.
+        o Support for multiple job-types for a single job. Use
+          boss submit -jobtype type1,type2 ...
+        o STDERR is parsed also at runtime (not only at post-process stage)
+   * Version 2.1.1
+        o Try reconnection to MySQL server on "Lost connection" errors
+        o Allow the use of environmental variables to define boss top
+          working directory in boss registerScheduler
+   * Version 2.1
+        o Extended to 255 characters the maximum file path strings in JOB
+          table
+        o boss SQL command allows updates in the specific job tables
+        o Added "boss version" command
+   * Version 2.0.1
+        o Bug fixes in the PBS scripts
+        o Cleanup of tests in src directory
+        o New executable jobGridExecuteri assumes user executable and
+          stdin/out/err files in the current working directory (currently
+          used for tests with grid schedulers)
+   * Version 2.0
+        o MySQL client part shipped with BOSS
+        o Static compilation of executables
+        o Removal of archive/ directory: scripts are stored in the database
+        o Added the SUBMIT_BIN, KILL_BIN, QUERY_BIN in SCHEDULER table
+        o Added the PRE_BIN, RUN_BIN, POST_BIN in JOBTYPE table
+        o Change in the interface of the submission scripts
+        o Log level in the BOSS log file selectable by switches in the
+          Makefile
+        o Removal of the S_ENV column in JOB table
+        o Added the RET_CODE column in JOB table
+        o User job standard error is parsed using the postprocess script at
+          end of execution
+        o Added the switch -user user in the boss query command
+   * Version 1.1
+        o Not documented...
+   * Version 1.0
+        o First released version
+
+Next steps
+==========
+
+Support for DAGMAN
+Support for composite jobs
+Reliable use on WAN (e.g. using a grid scheduler)
+Web based Graphical User Interface
+
+
+  ------------------------------------------------------------------------
+Claudio Grandi and Alessandro Renzi
+Last modified: Feb 24 2004
+

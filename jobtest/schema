@@ -1,0 +1,5 @@
+# schema definition file
+
+comment : string,counter : int
+
+

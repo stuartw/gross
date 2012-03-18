@@ -1,0 +1,5 @@
+#!/bin/sh
+
+boss registerScheduler -name edg -submit dg_submit.pl -query dg_query.pl -kill dg_kill.pl -default -topwdir NONE
+
+
