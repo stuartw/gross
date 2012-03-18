@@ -1,7 +1,0 @@
-                                CladLite
-                     Lightweight Classified Advertisement
-
-Simple package to read and write simple classad's
-No support for nested classads
-All right values are treated as strings
-

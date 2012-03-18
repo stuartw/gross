@@ -1,4 +1,0 @@
-[
-test:counter = 9999;
-testErr:counter = 9998;
-]

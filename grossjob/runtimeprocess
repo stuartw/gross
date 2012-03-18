@@ -3,17 +3,17 @@
 $|=1;
 while ( <STDIN> ) {
   
-  if($_ =~ /.*wrapper:CHECKPOINT:(\.+)/)  {
+  if($_ =~ /.*wrapper:CHECKPOINT:\s+(.*)/)  {
       $val = $1;
       print "last_checkpoint = $val\n";
   }
  
-  if($_ =~ /.*wrapper:ERROR:\s+(\w+).*/)  {
+  if($_ =~ /.*wrapper:ERROR:\s+(.*)/)  {
       $val = $1;
       print "last_error = $val\n";
   }
 
-  if($_ =~ /.*wrapper:WARNING:\s+(\w+).*/)  {
+  if($_ =~ /.*wrapper:WARNING:\s+(.*)/)  {
       $val = $1;
       print "last_warning = $val\n";
   }

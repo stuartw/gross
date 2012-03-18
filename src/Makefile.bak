@@ -1,6 +1,6 @@
 CPP = g++
-#CPPFLAGS = -g -ansi -O2
-CPPFLAGS = -ansi -O2
+CPPFLAGS = -g -ansi -O2
+#CPPFLAGS = -ansi
 OFLAG = -o
 .SUFFIXES : .o .cpp
 .cpp.o :

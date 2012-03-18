@@ -1,5 +1,0 @@
-#!/bin/sh
-
-boss registerScheduler -name bbs -submit bbs_submit.pl -query bbs_query.pl -kill bbs_kill.pl -default -topwdir .
-
-

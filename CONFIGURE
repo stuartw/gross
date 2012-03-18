@@ -1,114 +1,22 @@
-#! /bin/sh
+#!/bin/bash
 
-# enviroment
-
-# Create local environment files
-BOSSDIR=`pwd`
-VER=`tail -1 ${BOSSDIR}/VERSION | cut -f1`
-
-cat >bossenv.sh <<EOF
-export BOSSDIR=$BOSSDIR
-export PATH=\${BOSSDIR}/bin:\${PATH}
-EOF
-
-cat >bossenv.csh <<EOF
-setenv BOSSDIR $BOSSDIR
-if (\$?PATH) then
-   setenv PATH \${BOSSDIR}/bin:\${PATH}
-else
-   setenv PATH \${BOSSDIR}/bin
-endif
-EOF
-
-. bossenv.sh
-
-# create script for MySQL configuration
-
-HOST=`/bin/hostname`
-DOMAIN=`/bin/hostname -d`
-REDVER=`echo $VER | cut -d_ -f1,2`
-BOSSDB=boss_${REDVER}
-CONFSCRIPT=${BOSSDIR}/BossConfig.clad
-
-/bin/rm -f $CONFSCRIPT
-
-cat > $CONFSCRIPT  <<EOF
-
-# This is the BOSS configuration file
-
-[
-# BOSS top directory
-BOSS_TOP_DIR = "${BOSSDIR}";
-
-# BOSS version
-BOSS_VERSION = "${VER}";
-
-# BOSS temporary directory (where files are extracted from DB)
-BOSS_TMP_DIR = "/tmp";
-
-# BOSS update interval
-BOSS_MIN_UPD_INT = 5;   # at most one update every BOSS_MIN_UPD_INT sec.
-BOSS_MAX_UPD_INT = 30;  # at least one update every BOSS_MAX_UPD_INT sec.
-
-# Maximum retries after post-process finishes before killing dbUpdator
-# (waits BOSS_UPD_INTERVAL*BOSS_MAX_RETRY seconds)
-BOSS_MAX_RETRY = 3;
-
-# Host where the MySQL server is running
-DB_HOST = "${HOST}";
-DB_DOMAIN = "${DOMAIN}";
-
-# BOSS MySQL database
-DB_NAME = "${BOSSDB}";
-
-# Default BOSS MySQL user and password
-DB_USER = "BOSS${REDVER}manager";
-DB_USER_PW = "BossMySQL";
-
-# Guest BOSS MySQL user and password
-DB_GUEST = "BOSS${REDVER}monitor";
-DB_GUEST_PW = "BossMySQL";
-
-# MySQL table type
-TABLE_TYPE = "";
-
-# MySQL port
-DB_PORT = 0;
-
-# MySQL socket
-DB_SOCKET = "";
-
-# MySQL client flag
-DB_CLIENT_FLAG = 0;
-
-# Clarens URL
-CLARENS_URL = "";
-
-# Clarens CERT
-CLARENS_CERT = "";
-
-# Clarens KEY
-CLARENS_KEY = "";
-
-# Clarens PROXY
-CLARENS_PROXY = "";
-
-]
-EOF
-
-echo ""
-echo "Please modify $CONFSCRIPT"
-echo "if you need to modify the default BOSS-MySQL configuration"
-echo "please note that any modification to $CONFSCRIPT is automatically acive"
-
-echo ""
-# Check MySQL server
-if [ `ps -d | grep mysqld | wc -l` != "0" ]; then
-  echo "Found a MySQL server on this host"
-  echo "BOSS will try to use it unless you modify"
-  echo $CONFSCRIPT
-else
-  echo "MySQL server is not running on this host"
-  echo "Please modify $CONFSCRIPT to match your configuration"
+GROSSDIR=`pwd`
+if [ -z "$BOSSDIR" ]; then
+  echo "Run bossenv.sh first"
+  exit 1
 fi
-echo ""
+
+
+cat >grossenv.sh <<EOF
+. ${BOSSDIR}/bossenv.sh
+export GROSSDIR=$GROSSDIR
+export PATH=\${PATH}:\${GROSSDIR}/bin
+EOF
+
+cat >grossenv.csh <<EOF
+source ${BOSSDIR}/bossenv.csh
+setenv GROSSDIR ${GROSSDIR}
+setenv PATH \${PATH}:\${GROSSDIR}/bin
+EOF
+
+. grossenv.sh

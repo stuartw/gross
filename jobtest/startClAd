@@ -1,3 +1,0 @@
-#! /bin/sh
-
-boss s -classad test.clad

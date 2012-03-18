@@ -1,5 +1,0 @@
-#!/bin/sh
-
-boss registerJob -name testErr -schema schemaErr -pre preprocessErr -post postprocessErr -runtime runtimeprocessErr -comment "Test job for err out"
-
-

@@ -1,14 +1,27 @@
 *** Tested with gcc 3.2.2 ***
-If you need to install the MySQL server execute scripts/installMySQL.sh
+Assumes BOSS already installed
+See BOSS documentation if this is not the case.
+
+** GROSS/BOSS must be compiled on a Redhat 7 system - not RHEL3/SLC3, doing so results in the user being unable to run on RedHat 7 systems,
+   ie. the majority of LCG2 sites. Also gcc3.2 must be available to get this either 
+     - compile on a computer with the edg software available - at cern do /afs/cern.ch/cms/LCG/LCG-2/UI/cms_ui_env.sh
+     - do `scram runtime -sh` in your ORCA/src directory
+
 execute "make config" 
         --> creates the configuration files
+
 execute "make"
         --> builds libraries and binaries and configures the database
-execute the mysql command as suggested by the output of the previous step
-        --> creates the DB users and tables
-execute "source bossenv.csh" or ". bossenv.sh" 
+	--> The BOSS database must be correctly configured before this command is run
+        --> If the Gross databse is not correctly configured run "gross configureDB"
+
+execute "source grossenv.csh" or ". grossenv.sh" 
         --> sets the environment
-execute "cd sched_examples; ./registerForkScheduler" 
+
+execute "cd grossjob; ./registerGrossJob" 
         --> register the "fork" scheduler
+
+
+Note that BossConfig.clad is dynamically loaded at each command execution.
 
 

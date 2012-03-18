@@ -1,5 +1,0 @@
-#!/bin/sh
-
-boss registerScheduler -name condor -submit condor_submit.pl -query condor_query.pl -kill condor_kill.pl -default -topwdir .
-
-

@@ -1,0 +1,62 @@
+#Sample jdl (job description lanaguage) configuration for gross analysis
+
+#==> General Orca job options
+
+#Owner and dataset to be analyzed - Datachain lists other filetypes required
+#Owner = "bt_NoPU850_TkMu_g133_OSC";
+#Dataset = "bt03b_muon_pt100";
+Owner = "hg_DST871_2x1033PU_g133_OSC";
+Dataset = "hg03_hsm120_mumu";
+
+#DataChain = "DST";
+#DataChain ="DST,Digi,Hit";
+
+#Executable to use - ORCA version automatically determined after eval `scram runtime -sh`
+#and any argumments except -c orcarc 
+Executable = "ExDSTStatistics";
+Orcarc = "/home/stuartw/gross-v0_4_0/example/orcarc";
+Arguments = "";
+
+#For job Spliting - how many runs to analyze in each job
+RunsPerJob = "4";
+
+#Suffix to add to job files - aids identification - Optional
+OutFileSuffix = "myHiggsAnalysis";
+
+#Input data - anything other than orcarc and exe/libs
+#InputSandbox  = {"input_data_file"};
+
+#Output data - ie root files, returned to local file system (fro grid and local jobs)
+OutputSandbox = {"dststatistics.aida", "output2.root" };
+
+#Name for std output and error
+StdOutput     = "mystandardout.out";
+StdError      = "mystandarderr.err";
+
+
+#==> scheduler specific options
+
+#Note any options here not known to GROSS will be passed down to BOSS and eventually to the scheduler
+
+#LCG
+ #saves output to grid SE
+ #OutputFileLFN = {"output_file_to_grid.root"};
+
+ #Grid Requirments for site matching -ie redhat 7.3 or SLC3 or min time for jobs(seconds)
+Requirements = (other.GlueCEPolicyMaxCPUTime > 100) && (other.GlueHostOperatingSystemName=="RedHat");
+
+ #Location of files that tell edg command how to submit
+ #comment out if on lxplus and you have sourced 
+ RBconfigVO= {"/home/stuartw/gross-v0_4_0/example/RBlcg2cms_edg_wl_ui.conf "};
+ RBconfig= {"/home/stuartw/gross-v0_4_0/example/RBlcg2cms_edg_wl_ui_cmd_var.conf "};
+
+ #other fields
+ #retries
+ #linux 7.3 etc
+
+#Local Batch systems
+
+ #Need scram location not needed in grid jobs 
+ #Scram = "/afs/cern.ch/cms/utils/scram";
+
+

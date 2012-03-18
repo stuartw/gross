@@ -1,0 +1,31 @@
+#CARFVerbosity = silent
+#UtilVerbosity = silent
+
+#CobraSignalHandler = false
+#FinalAbort = true
+#ForceExit = true
+#TextColor = false
+#TimingReport = true
+#MemoryDebug = true
+#MonRecAlisaBuilder = true
+
+#FirstEvent = 0
+MaxEvents = 1
+#TraceOnThrow=true
+#UseMCforDST = true
+GeaneUsed = true
+
+#comment out fields below to acces Hits,Digis
+#TrackerHits*:Request=Nop
+#CH:Request=Nop   # Ecal
+#HH:Request=Nop   # Hcal
+#MuonHits*:Request=Nop
+#TrackerDigi*:Request=Nop
+#TrackerAssoc*:Request=Nop
+#CD:Request=Nop   # Ecal dataframes
+#HD:Request=Nop   # Hcal dataframes
+#CS:Request=Nop   # Ecal selective readout
+#CT:Request=Nop   # Ecal Trigger towers
+#HT:Request=Nop   # Hcal Trigger towers
+#MuonDigis*:Request=Nop
+#MuonAssoc*:Request=Nop

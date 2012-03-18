@@ -1,5 +1,10 @@
 #!/bin/sh
+boss registerJob -name gross -schema schema -runtime runtimeprocess -comment "GROSS-wrapped ORCA job"
 
-boss registerJob -name gross -schema schema -runtime runtimeprocess -comment "GROSS-wrapped job"
+gross registerWrapper -wrapScript orcaGWrapper_0_4_0.sh -wrapName OrcaG
 
+gross registerWrapper -wrapScript orcaLocWrapper_0_4_0.sh -wrapName OrcaLoc
 
+gross registerRetrieve -script autoRetrieve.sh -scriptName OrcaG
+
+gross registerRetrieve -script autoRetrieve.sh -scriptName OrcaLoc
