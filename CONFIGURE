@@ -46,39 +46,52 @@ BOSS_VERSION = "${VER}";
 # BOSS temporary directory (where files are extracted from DB)
 BOSS_TMP_DIR = "/tmp";
 
-# BOSS update interval (at most one query every BOSS_UPD_INTERVAL sec.)
-BOSS_UPD_INTERVAL = 5;
+# BOSS update interval
+BOSS_MIN_UPD_INT = 5;   # at most one update every BOSS_MIN_UPD_INT sec.
+BOSS_MAX_UPD_INT = 30;  # at least one update every BOSS_MAX_UPD_INT sec.
 
 # Maximum retries after post-process finishes before killing dbUpdator
 # (waits BOSS_UPD_INTERVAL*BOSS_MAX_RETRY seconds)
 BOSS_MAX_RETRY = 3;
 
 # Host where the MySQL server is running
-BOSS_DB_HOST = "${HOST}";
-BOSS_DB_DOMAIN = "${DOMAIN}";
+DB_HOST = "${HOST}";
+DB_DOMAIN = "${DOMAIN}";
 
 # BOSS MySQL database
-BOSS_DB_NAME = "${BOSSDB}";
+DB_NAME = "${BOSSDB}";
 
 # Default BOSS MySQL user and password
-BOSS_DB_USER = "BOSS${REDVER}manager";
-BOSS_DB_USER_PW = "BossMySQL";
+DB_USER = "BOSS${REDVER}manager";
+DB_USER_PW = "BossMySQL";
 
 # Guest BOSS MySQL user and password
-BOSS_DB_GUEST = "BOSS${REDVER}monitor";
-BOSS_DB_GUEST_PW = "BossMySQL";
+DB_GUEST = "BOSS${REDVER}monitor";
+DB_GUEST_PW = "BossMySQL";
 
 # MySQL table type
-BOSS_TABLE_TYPE = "";
+TABLE_TYPE = "";
 
 # MySQL port
-BOSS_DB_PORT = 0;
+DB_PORT = 0;
 
 # MySQL socket
-BOSS_DB_SOCKET = "";
+DB_SOCKET = "";
 
 # MySQL client flag
-BOSS_DB_CLIENT_FLAG = 0;
+DB_CLIENT_FLAG = 0;
+
+# Clarens URL
+CLARENS_URL = "";
+
+# Clarens CERT
+CLARENS_CERT = "";
+
+# Clarens KEY
+CLARENS_KEY = "";
+
+# Clarens PROXY
+CLARENS_PROXY = "";
 
 ]
 EOF

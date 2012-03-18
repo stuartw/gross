@@ -21,7 +21,7 @@ class BossQuery : public BossCommand {
 private:
   int printJobHead(BossJob*, std::string);
   int printJob(BossJob*, std::string, std::string, BossDatabase*);
-  std::string getState(BossJob*, BossScheduler&);
+  std::string getState(BossJob*, BossScheduler&,bool);
 public:
   BossQuery();
   virtual ~BossQuery();

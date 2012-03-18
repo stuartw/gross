@@ -1,14 +1,14 @@
 // /////////////////////////////////////////////////////////////////////
-// Program: BOSS
-// Version: 2.1
-// File:    BossOperatingSystem.cpp
-// Authors: Claudio Grandi (INFN BO), Alessandro Renzi (INFN BO)
-// Date:    31/01/2002
+// Program: Utilities
+// Version: 1.0
+// File:    OperatingSystem.cpp
+// Authors: Claudio Grandi (INFN BO)
+// Date:    15/03/2004
 // Note:
 // /////////////////////////////////////////////////////////////////////
 
-#ifndef BOSS_OPERATING_SYSTEM_H
-#define BOSS_OPERATING_SYSTEM_H
+#ifndef OPERATING_SYSTEM_H
+#define OPERATING_SYSTEM_H
 
 #include <sstream>
 #include <cstdlib>
@@ -17,24 +17,10 @@
 #include <cstdio>
 #include <ctime>
 #include <unistd.h>
+#include "pstream.h"
 
-class BossProcess;
-
-class BossOperatingSystem {
-
-private:
-  static BossOperatingSystem* instance_;
-  BossOperatingSystem();
-  
-
-public:
-
-  // Constructor & Destructor
-  // Nothing
-  static BossOperatingSystem* instance();
-  ~BossOperatingSystem();
-
-  // Methods
+namespace OSUtils {
+  class Process;
   std::string getUserName();
   std::string getHostName();
   int getPid();
@@ -42,6 +28,7 @@ public:
   int changeDir(std::string);
   std::string getEnv(std::string);
   int setEnv(std::string, std::string);
+  std::string expandEnv(const std::string&);
   time_t getTime();
   std::string getStrTime();
   std::string time2StrTime(time_t*);
@@ -57,11 +44,13 @@ public:
   std::string basename(const std::string);
   std::string dirname(const std::string);
   int makeFIFO(std::string,int);
-  int forkProcess(BossProcess*);
-  int waitProcess(BossProcess*, std::string option="");
-  int waitProcessMaxTime(BossProcess*, int);
-  void terminateProcess(BossProcess*);
-  std::vector<std::string> splitString(std::string,char);
+  int shell(std::string);
+  int forkProcess(OSUtils::Process*);
+  int waitProcess(OSUtils::Process*, std::string option="");
+  int waitProcessMaxTime(OSUtils::Process*, int);
+  std::string checkProcess(OSUtils::Process*);
+  int terminateProcess(OSUtils::Process*);
+  std::vector<std::string> splitString(const std::string&,char);
   void trim(std::string&);
   void sleep(unsigned);
   int tar(std::string,std::string,const std::vector<std::string>&);
@@ -70,12 +59,14 @@ public:
   int touch(std::string);
   char* string2char(std::string);
   int string2int(std::string);
+  //  void getCommandOutput(std::string, std::iostream&);
   template <typename T>
-    std::string convert2string(T n) {
+  std::string convert2string(T n) {
     std::ostringstream os;
     os<<n;
     return os.str();
   }
-};
+  typedef redi::ipstream CommandStream;
+}
 
 #endif

@@ -3,7 +3,7 @@
 $|=1;
 while ( <STDIN> ) {
   
-  if($_ =~ /.*wrapper:CHECKPOINT:\s+(\w+).*/)  {
+  if($_ =~ /.*wrapper:CHECKPOINT:(\.+)/)  {
       $val = $1;
       print "last_checkpoint = $val\n";
   }

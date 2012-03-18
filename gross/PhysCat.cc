@@ -26,7 +26,7 @@ int PhysCat::init(const string& myRLSCat, const string& myGenQuery) {
       RefDBquery refdb;
  
       //connect to refdb and get POOL catalog
-      if (refdb.init(*localRLSFrag_, query, true)) {
+      if (refdb.init(*localRLSFrag_, query, !(localRLSFrag_->exists()))) {
         cerr << "PhysCat::init: Error contacting RefDB"<<endl;
         return EXIT_FAILURE;
       }
@@ -34,7 +34,7 @@ int PhysCat::init(const string& myRLSCat, const string& myGenQuery) {
     }//end if Grid job
 
     //If Local job
-    if (TaskFactory::facType() == "OrcaLoc") {
+    else if (TaskFactory::facType() == "OrcaLoc") {
       query=query+" OR DataType='META' OR pfname='PersilCatalogInit'";
     }//end if local job
   /*** END OF FACTORY SPECIFIC CODE ***/

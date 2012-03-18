@@ -12,7 +12,7 @@
 #include "BossConfigureDB.h"
 //#include "BossDatabase.h"
 #include "BossConfiguration.h"
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 
 using namespace std;
 
@@ -30,7 +30,6 @@ void BossConfigureDB::printUsage() const
 
 int BossConfigureDB::execute() {
   // this is just a temporary solution...
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
   BossConfiguration* config=BossConfiguration::instance();
 
   ofstream f("MySQLconfig.sql");
@@ -55,12 +54,12 @@ int BossConfigureDB::execute() {
   string guestpw=config->boss_db_guest_pw();
   if(guestpw=="NULL")
     guestpw="";
-  f << "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON " << config->boss_db_name() << ".* TO '" << config->boss_db_user() << "'@localhost IDENTIFIED BY '" << userpw << "' WITH GRANT OPTION;" << endl;
-  f << "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON " << config->boss_db_name() << ".* TO '" << config->boss_db_user() << "'@'" << config->boss_db_host() << "' IDENTIFIED BY '" << userpw << "' WITH GRANT OPTION;" << endl;
+  f << "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER ON " << config->boss_db_name() << ".* TO '" << config->boss_db_user() << "'@localhost IDENTIFIED BY '" << userpw << "' WITH GRANT OPTION;" << endl;
+  f << "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER ON " << config->boss_db_name() << ".* TO '" << config->boss_db_user() << "'@'" << config->boss_db_host() << "' IDENTIFIED BY '" << userpw << "' WITH GRANT OPTION;" << endl;
   f << "GRANT SELECT ON " << config->boss_db_name() << ".* TO '" << config->boss_db_guest() << "'@localhost IDENTIFIED BY '" << guestpw << "';" << endl;
   f << "GRANT SELECT ON " << config->boss_db_name() << ".* TO '" << config->boss_db_guest() << "'@'" << config->boss_db_host() << "' IDENTIFIED BY '" << guestpw << "';" << endl;
   if (strlen(config->boss_db_domain())>0) {
-    f << "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON " << config->boss_db_name() <<".* TO '" << config->boss_db_user() <<"'@'%." << config->boss_db_domain() << "' IDENTIFIED BY '" << userpw << "' WITH GRANT OPTION;" << endl;
+    f << "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER ON " << config->boss_db_name() <<".* TO '" << config->boss_db_user() <<"'@'%." << config->boss_db_domain() << "' IDENTIFIED BY '" << userpw << "' WITH GRANT OPTION;" << endl;
     f << "GRANT SELECT ON " << config->boss_db_name() << ".* TO '" << config->boss_db_guest() << "'@'%." << config->boss_db_domain() << "' IDENTIFIED BY '" << guestpw << "';" << endl;
   }
 
@@ -78,7 +77,8 @@ int BossConfigureDB::execute() {
   f << "TOP_WORK_DIR 	VARCHAR(100) BINARY NOT NULL DEFAULT \"NONE\"," << endl;
   f << "SUBMIT_BIN	MEDIUMBLOB NOT NULL DEFAULT \"\"," << endl;
   f << "KILL_BIN	MEDIUMBLOB NOT NULL DEFAULT \"\"," << endl;
-  f << "QUERY_BIN	MEDIUMBLOB NOT NULL DEFAULT \"\"" << endl;
+  f << "QUERY_BIN	MEDIUMBLOB NOT NULL DEFAULT \"\"," << endl;
+  f << "COPY_COMMAND	VARCHAR(100) BINARY NOT NULL DEFAULT \"NONE\"" << endl;
   f << ")" << tabtyp << ";" << endl;
   // Insert fork scheduler
 
@@ -118,98 +118,11 @@ int BossConfigureDB::execute() {
   f << "T_START     INT NOT NULL DEFAULT 0," << endl;
   f << "T_STOP      INT NOT NULL DEFAULT 0," << endl;
   f << "T_STAT      VARCHAR(50) BINARY NOT NULL DEFAULT \"\"," << endl;
-  f << "RET_CODE    VARCHAR(11) BINARY NOT NULL DEFAULT \"\"" << endl;
+  f << "RET_CODE    VARCHAR(11) BINARY NOT NULL DEFAULT \"\"," << endl;
+  f << "IN_FILES    BLOB NOT NULL DEFAULT \"\"," << endl;
+  f << "OUT_FILES   BLOB NOT NULL DEFAULT \"\"," << endl;
+  f << "T_LAST      INT NOT NULL DEFAULT 0" << endl;
   f << ")" << tabtyp << ";" << endl;
-
-  //GROSS tables (temporarily put in here - maybe better in its own class, BossConfigureGrossDB??)
-  
-  //Analy_Task
-  f<< "CREATE TABLE IF NOT EXISTS Analy_Task (" << endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY," <<endl;
-  f<< "UserSpec MEDIUMBLOB NOT NULL DEFAULT \"\"," <<endl;
-  f<< "JDLRem MEDIUMBLOB NOT NULL DEFAULT \"\"," <<endl;
-  f<< "FacType VARCHAR(30) NOT NULL DEFAULT \"\""<<endl;
-  f<< ");" <<endl;
-  
-  //Analy_Job
-  f<< "CREATE TABLE IF NOT EXISTS Analy_Job (" <<endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
-  f<< "TaskID INT,"<<endl;
-  f<< "JobID INT,"<<endl;
-  f<< "BossID INT NOT NULL DEFAULT 0,"<<endl;
-  f<< "DataSelect VARCHAR(255),"<<endl;
-  f<< "ExecName VARCHAR(255),"<<endl;
-  f<< "StdOut VARCHAR(255),"<<endl;
-  f<< "StdErr VARCHAR(255),"<<endl;
-  f<< "Suffix VARCHAR(255),"<<endl;
-  f<< "XMLFrag MEDIUMBLOB DEFAULT \"\","<<endl;
-  f<< "SboxDir VARCHAR(255),"<<endl;
-  f<< "MetaFile VARCHAR(255),"<<endl;
-  f<< "outDir VARCHAR(255),"<<endl;
-  f<< "runsPerJob INT"<<endl;
-  f<< ");"<<endl;
-
-  //Analy_InGUIDs
-  f<< "CREATE TABLE IF NOT EXISTS Analy_InGUIDs ("<<endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
-  f<< "TaskID INT,"<<endl;
-  f<< "JobID INT,"<<endl;
-  f<< "Name VARCHAR(255)"<<endl;
-  f<< ");"<<endl;
-  
-  //Analy_MetaFiles
-  f<< "CREATE TABLE IF NOT EXISTS Analy_InMETAs ("<<endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl; 
-  f<< "TaskID INT,"<<endl;
-  f<< "JobID INT,"<<endl;
-  f<< "Name VARCHAR(255)"<<endl;
-  f<< ");"<<endl;
-  
-  //Analy_OutGUIDs
-  f<< "CREATE TABLE IF NOT EXISTS Analy_OutGUIDs ("<<endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
-  f<< "TaskID INT,"<<endl;
-  f<< "JobID INT,"<<endl;
-  f<< "Name VARCHAR(255)"<<endl;
-  f<< ");"<<endl;
-
-  //Analy_LocalIn
-  f<< "CREATE TABLE IF NOT EXISTS Analy_LocalIn ("<<endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
-  f<< "TaskID INT,"<<endl;
-  f<< "JobID INT,"<<endl;
-  f<< "Name VARCHAR(255)"<<endl;
-  f<< ");"<<endl;
-
-  //Analy_OutSandbox
-  f<< "CREATE TABLE IF NOT EXISTS Analy_OutSandbox ("<<endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
-  f<< "TaskID INT,"<<endl;
-  f<< "JobID INT,"<<endl;
-  f<< "Name VARCHAR(255)"<<endl;
-  f<< ");"<<endl;
-
-  //Analy_Wrapper
-  f<< "CREATE TABLE IF NOT EXISTS Analy_Wrapper ("<<endl;
-  f<< "name VARCHAR(255) NOT NULL PRIMARY KEY,"<<endl;
-  f<< "script MEDIUMBLOB NOT NULL DEFAULT \"\""<<endl;
-  f<< ");"<<endl;
-
-  //AnalyLoc_InFiles
-  f<< "CREATE TABLE IF NOT EXISTS AnalyLoc_InFiles ("<<endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
-  f<< "TaskID INT,"<<endl;
-  f<< "JobID INT,"<<endl;
-  f<< "Name VARCHAR(255)"<<endl;
-  f<< ");"<<endl;
-	  
-  //AnalyLoc_OutFiles
-  f<< "CREATE TABLE IF NOT EXISTS AnalyLoc_OutFiles ("<<endl;
-  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
-  f<< "TaskID INT,"<<endl;
-  f<< "JobID INT,"<<endl;
-  f<< "Name VARCHAR(255)"<<endl;
-  f<< ");"<<endl;
 
   // flush privileges
   f << "FLUSH PRIVILEGES;" << endl;
@@ -223,7 +136,7 @@ int BossConfigureDB::execute() {
     return -2;
   }
   fg << "USE mysql" << endl;
-  fg << "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON " << config->boss_db_name() << ".* TO '" << config->boss_db_user() << "'@'%' IDENTIFIED BY '" << userpw << "' WITH GRANT OPTION;" << endl;
+  fg << "GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP,ALTER ON " << config->boss_db_name() << ".* TO '" << config->boss_db_user() << "'@'%' IDENTIFIED BY '" << userpw << "' WITH GRANT OPTION;" << endl;
   fg << "GRANT SELECT ON " << config->boss_db_name() << ".* TO '" << config->boss_db_guest() << "'@'%' IDENTIFIED BY '" << guestpw << "';" << endl;
   fg << "FLUSH PRIVILEGES;" << endl;
 
@@ -231,10 +144,10 @@ int BossConfigureDB::execute() {
 
    string connect_string;
    connect_string = "-u root -s -f";
-   if (string(config->boss_db_host()) != sys->getHostName())
+   if (string(config->boss_db_host()) != OSUtils::getHostName())
      connect_string += " -h " + string(config->boss_db_host());
    if (config->boss_db_port() != 0)
-     connect_string += " -P " + sys->convert2string(config->boss_db_port());
+     connect_string += " -P " + OSUtils::convert2string(config->boss_db_port());
    if (string(config->boss_db_socket()) != "NULL" && string(config->boss_db_socket()) !="" )
      connect_string += " -S " + string(config->boss_db_socket());
 

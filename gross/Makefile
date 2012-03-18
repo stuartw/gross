@@ -18,7 +18,12 @@ MYSQLINC=$(TOPDIR)/mysql/include
 CLADLIB=$(TOPDIR)/ClassAdLite/lib
 BOSSLIB=$(TOPDIR)/lib
 MYSQLLIB=$(TOPDIR)/mysql/lib
-PSTREAMINC=$(TOPDIR)/pstream
+#PSTREAMINC=$(TOPDIR)/pstream
+OSUTILSINC=$(TOPDIR)/OSUtils/include
+OSUTILSLIB=$(TOPDIR)/OSUtils/lib
+DBINC=$(TOPDIR)/SirDB/include
+DBLIB=$(TOPDIR)/SirDB/lib
+
 
 #RLS stuff
 SINC=$(CMSDIR)/lcg/app/releases/SEAL/SEAL_1_3_3/rh73_gcc32/include/
@@ -32,9 +37,9 @@ PLUGINLIB=$(CMSDIR)/lcg/app/releases/SEAL/SEAL_1_3_3/rh73_gcc32/lib/
 EXES = gross
 SOURCES = $(wildcard *.cc)
 OBJS := $(SOURCES:.cc=.o)
-INCLUDES += -I$(CLADINC) -I$(BOSSINC) -I$(MYSQLINC) -I$(POOLINC) -I$(BOOSTINC) -I$(SEALBASEINC) -I$(SINC) -I$(PSTREAMINC)
-LIB_DIRS = -L$(CLADLIB) -L$(BOSSLIB) -L$(MYSQLLIB) -L$(POOLLIB) -L$(PLUGINLIB)
-LIB_FILES +=  -lBossComm -lBossBase  -lClassAdLite -lmysqlclient -lz -llcg_FileCatalog -llcg_AttributeList -lcurl
+INCLUDES += -I$(CLADINC) -I$(BOSSINC) -I$(MYSQLINC) -I$(POOLINC) -I$(BOOSTINC) -I$(SEALBASEINC) -I$(SINC) -I$(OSUTILSINC)
+LIB_DIRS = -L$(CLADLIB) -L$(BOSSLIB) -L$(MYSQLLIB) -L$(POOLLIB) -L$(PLUGINLIB) -L$(OSUTILSLIB) -L$(DBLIB)
+LIB_FILES +=  -lBossComm -lBossBase  -lClassAdLite -lmysqlclient -lz -llcg_FileCatalog -llcg_AttributeList -lcurl -lOSUtils -lSirDBMySQL
 
 all: $(EXES)
 
@@ -55,4 +60,3 @@ depend:
 	makedepend -- $(CPP) $(CPPFLAGS) -- $(INCLUDES) gross.cpp $(SOURCES) $(LIB_DIRS) $(LIB_FILES)
 
 # DO NOT DELETE
-

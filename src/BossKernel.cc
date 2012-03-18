@@ -9,7 +9,7 @@
 
 #include "BossKernel.h"
 
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 #include "BossConfiguration.h"
 #include "BossJob.h"
 
@@ -21,14 +21,12 @@ using namespace Boss;
 BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
   //                            contains the submission details
 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-
   CAL::ClassAdLite userClad; // optional user classad
   CAL::ClassAdLite setAttr;  // optional user-defined attributes
 
   // if the -classad option has been used, parse the file
   if ( clad["-classad"] != "NULL" ){
-    if ( !sys->fileExist(clad["-classad"]) ) {
+    if ( !OSUtils::fileExist(clad["-classad"]) ) {
       std::cerr << "ClassAd file doesn't exist" << std::endl;
       return 0;
     }
@@ -48,6 +46,9 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
   
   // check if the job_type exists
   std::vector<std::string> types = CAL::getList(clad["-jobtype"]);
+  std::vector<std::string>::iterator ti1;
+  for(ti1=types.begin(); ti1<types.end(); ti1++)
+    CAL::removeOuterQuotes(*ti1);
   std::vector<std::string>::const_iterator ti;
   for(ti=types.begin(); ti<types.end(); ti++) {
     if ( *ti != "stdjob" ) {  
@@ -60,11 +61,11 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
   
   // check the files
   if ( clad["-executable"]=="NULL" || 
-       !sys->fileExist(clad["-executable"]) ) {
+       !OSUtils::fileExist(clad["-executable"]) ) {
     std::cerr << "Executable doesn't exist: " << clad["-executable"] << std::endl;
     return 0;
   }
-  if ( !sys->fileExist(clad["-stdin"]) ) {
+  if ( !OSUtils::fileExist(clad["-stdin"]) ) {
     std::cerr << "Stdin doesn't exist: " << clad["-stdin"] << std::endl;
     return 0;
   }
@@ -76,14 +77,16 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
   jobH->setBasicInfo(clad["-jobtype"],
 		     clad["-executable"],clad["-args"],
 		     clad["-stdin"],clad["-stdout"],
-		     clad["-stderr"], clad["-log"]);
+		     clad["-stderr"], 
+		     clad["-infiles"], clad["-outfiles"],
+		     clad["-log"]);
   
   // Set the submission variables
-  jobH->setSubInfo(sys->getHostName(),
-		   sys->getCurrentDir(),
-		   sys->getUserName());
+  jobH->setSubInfo(OSUtils::getHostName(),
+		   OSUtils::getCurrentDir(),
+		   OSUtils::getUserName());
   
-  // Set the specific part
+  // Set the schema for the specific part
   for(ti=types.begin(); ti<types.end(); ti++) {
     if ( *ti != "stdjob" ) {
       std::string schema = db.findSchema(*ti);
@@ -101,7 +104,7 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
     return 0;
   }
   int id = jobH->getId();
-  std::string strid = sys->convert2string(id);
+  std::string strid = OSUtils::convert2string(id);
   if ( id < 0 ) {
     std::cerr << "Error assigning ID to the job" << std::endl;
     delete jobH;
@@ -124,7 +127,7 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
       // debug
       // std::cout << it->first << " = \"" << it->second << "\";" << std::endl;
       // end debug
-      std::vector<std::string> tmp = sys->splitString(it->first,':');
+      std::vector<std::string> tmp = OSUtils::splitString(it->first,'.');
       // debug
       // std::cout << tmp[0] << " " << tmp[1] << " " << it->second << std::endl;
       // end debug
@@ -144,6 +147,9 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
 	continue;
       }
       std::string value = it->second;
+      // DEBUG
+      // std::cout << "Setting private attribute " << table << ":" << name << "=" << value << std::endl;
+      // END DEBUG
       jobH->setData(BossUpdateElement(id,table,name,value),true);
     }
   }
@@ -152,28 +158,47 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
 
   // create a dirctory with files to be included in archive
   std::string archdir = config->boss_tmp_dir()+"/BossJobTmp_" + strid;
-  if ( sys->dirExist(archdir) ) {
+  if ( OSUtils::dirExist(archdir) ) {
     archdir+="_";
     int index=1;
-    while ( sys->dirExist(archdir+sys->convert2string(index)) ) {
+    while ( OSUtils::dirExist(archdir+OSUtils::convert2string(index)) ) {
       index++;
     }
-    archdir+=sys->convert2string(index);
+    archdir+=OSUtils::convert2string(index);
   }
-  if ( sys->makeDir(archdir) != 0 ) {
+  if ( OSUtils::makeDir(archdir) != 0 ) {
     std::cerr << "Cannot make archive directory";
     delete jobH; 
     return 0;
   }
   // Create the files to recreate the job at runtime (avoid query to DB)
   std::vector<std::string> files;
-  if ( sys->fileCopy(config->boss_config_file(),archdir) == 0 )
-    files.push_back(sys->basename(config->boss_config_file()));
+  // Add dbUpdator to archive
+  // assume first it is in the current directory
+  std::string updatorFile = "./dbUpdator";
+  if ( !OSUtils::fileExist(updatorFile) )
+    // try to see if it is in the path
+    updatorFile = OSUtils::which("dbUpdator");
+  // copy to the archive dir
+  if ( OSUtils::fileExist(updatorFile) ) {
+    if ( OSUtils::fileCopy(updatorFile,archdir) == 0 )
+      files.push_back(OSUtils::basename(updatorFile));
+    else
+      std::cerr << "Error copying updator file to archive. "
+	   << "Update has to be done manually" << std::endl;      
+  } else {
+    std::cerr << "Database updator file not found. Update has to be done manually" 
+	 << std::endl;
+  }
+  // add the BOSS configuration file to the archive
+  if ( OSUtils::fileCopy(config->boss_config_file(),archdir) == 0 )
+    files.push_back(OSUtils::basename(config->boss_config_file()));
   else {
     std::cerr << "Boss configuration file not found!" << std::endl;
     delete jobH;  
     return 0;
   }
+  // add the dump of the JOB row to the archive
   std::string jobgenname = std::string("BossGeneralInfo_") + strid;
   BossUpdateSet jobinfo;
   jobH->generalData2UpdateSet(jobinfo);
@@ -182,9 +207,9 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
   jobinfo.remove(jobH->getId(),"JOB","T_SUB");
   // Dump on file
   jobinfo.dump(jobgenname);
-  if ( sys->fileCopy(jobgenname,archdir) == 0 ) {
+  if ( OSUtils::fileCopy(jobgenname,archdir) == 0 ) {
     files.push_back(jobgenname);
-    sys->fileRemove(jobgenname);
+    OSUtils::fileRemove(jobgenname);
   }
   else {
     std::cerr << "Boss general information file not found!" << std::endl;
@@ -202,7 +227,7 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
       int err = -999;
       err = db.getPreProcess(*ti, prefilter);
       if ( err == 0 )
-	files.push_back(sys->basename(prefilter));
+	files.push_back(OSUtils::basename(prefilter));
       else if ( err <0 ) {
 	std::cerr << "Unable to get a copy of the pre process script for " 
 	     << (*ti) << ". Abort." << std::endl;
@@ -211,7 +236,7 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
       }
       err = db.getRuntimeProcess(*ti, runtimefilter);
       if ( err == 0 )
-	files.push_back(sys->basename(runtimefilter));
+	files.push_back(OSUtils::basename(runtimefilter));
       else if ( err <0 ) {
 	std::cerr << "Unable to get a copy of the runtime process script for " 
 	     << (*ti) << ". Abort." << std::endl;
@@ -220,7 +245,7 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
       }
       err = db.getPostProcess(*ti, postfilter);
       if ( err == 0 )
-	files.push_back(sys->basename(postfilter));
+	files.push_back(OSUtils::basename(postfilter));
       else if ( err <0 ) {
 	std::cerr << "Unable to get a copy of the post process script for " 
 	     << (*ti) << ". Abort." << std::endl;
@@ -233,7 +258,7 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
 	if ( sch ) {
 	  sch << buff;
 	  sch.close();
-	  files.push_back(sys->basename(schemafile));
+	  files.push_back(OSUtils::basename(schemafile));
 	} else {
 	  std::cerr << "Unable to write the schema for " 
 	       << (*ti) << ". Abort." << std::endl;
@@ -248,16 +273,31 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
       }
     }
   }
-
+  // Add user declared input sandbox files to archive
+  std::vector<std::string> inf = jobH->getInFiles();
+  std::vector<std::string>::const_iterator itf;
+  for (itf=inf.begin();itf!=inf.end(); ++itf) {
+    if ( OSUtils::fileCopy((*itf),archdir) == 0 )
+      files.push_back(OSUtils::basename(*itf));
+    else {
+      std::cerr << "Unable to add file " << (*itf) << " to archive." 
+		<< " Abort!" << std::endl;
+      intErr = -id;
+    }
+  }
+  
   if (intErr == 0 ) {
     // prepare the archive
-    std::string currdir = sys->getCurrentDir();
-    sys->changeDir(archdir);
-    int tarerr = sys->tar("cz",currdir+"/BossArchive_"+strid+".tgz",files);
-    sys->changeDir(currdir);
+    std::string currdir = OSUtils::getCurrentDir();
+    OSUtils::changeDir(archdir);
+    // DEBUG
+    // OSUtils::shell("ls -l ");
+    // ENDDEBUG
+    int tarerr = OSUtils::tar("cz",currdir+"/BossArchive_"+strid+".tgz",files);
+    OSUtils::changeDir(currdir);
     // DEBUG
     //std::vector<std::string>dummy;
-    //sys->tar("tz","BossArchive_"+strid+".tgz",dummy);
+    //OSUtils::tar("tz","BossArchive_"+strid+".tgz",dummy);
     //ENDDEBUG
     if (tarerr) {
       std::cerr << "Error creating archive" << std::endl;
@@ -266,15 +306,15 @@ BossJob* Boss::declareJob(CAL::ClassAdLite& clad, BossDatabase& db) {
   }
 
   // Remove archive directory
-  if ( sys->dirExist(archdir) ) 
-    sys->dirRemove(archdir);
+  if ( OSUtils::dirExist(archdir) ) 
+    OSUtils::dirRemove(archdir);
 
   // If something went wrong delete also the classad and the archive (if any).
   if ( intErr != 0 ) {
-    if ( sys->fileExist("BossArchive_"+strid+".tgz") ) 
-      sys->fileRemove("BossArchive_"+strid+".tgz");
-    if ( sys->fileExist(ocladfname) ) 
-      sys->fileRemove(ocladfname);
+    if ( OSUtils::fileExist("BossArchive_"+strid+".tgz") ) 
+      OSUtils::fileRemove("BossArchive_"+strid+".tgz");
+    if ( OSUtils::fileExist(ocladfname) ) 
+      OSUtils::fileRemove(ocladfname);
     delete jobH; 
     return 0;
   }
@@ -298,10 +338,17 @@ void Boss::parseSubmissionClassAd(CAL::ClassAdLite& subClad,
   CAL::pop(userClad,"input",subClad["-stdin"]);
   CAL::pop(userClad,"output",subClad["-stdout"]);
   CAL::pop(userClad,"error",subClad["-stderr"]);
+  CAL::pop(userClad,"transfer_input_files",subClad["-infiles"]);
+  CAL::pop(userClad,"transfer_output_files",subClad["-outfiles"]);
+  std::string dummy;
+  CAL::pop(userClad,"should_transfer_files",dummy);
+  CAL::pop(userClad,"when_to_transfer_output",dummy);
   // Support EDG scheduler sintax (most c.a. are the same of condor)
   CAL::pop(userClad,"StdInput",subClad["-stdin"]);
   CAL::pop(userClad,"StdOutput",subClad["-stdout"]);
   CAL::pop(userClad,"StdError",subClad["-stderr"]);
+  CAL::pop(userClad,"InputSandbox",subClad["-infiles"]);
+  CAL::pop(userClad,"OutputSandbox",subClad["-outfiles"]);
   // Support native BOSS sintax (overrides previous settings)
   CAL::pop(userClad,"jobtype",subClad["-jobtype"]);
   CAL::pop(userClad,"executable",subClad["-executable"]);
@@ -310,6 +357,8 @@ void Boss::parseSubmissionClassAd(CAL::ClassAdLite& subClad,
   CAL::pop(userClad,"stdout",subClad["-stdout"]);
   CAL::pop(userClad,"stderr",subClad["-stderr"]);
   CAL::pop(userClad,"log",subClad["-log"]);
+  CAL::pop(userClad,"infiles",subClad["-infiles"]);
+  CAL::pop(userClad,"outfiles",subClad["-outfiles"]);
   // remove double quotes from attributes
   CAL::removeOuterQuotes(subClad["-jobtype"]);
   CAL::removeOuterQuotes(subClad["-executable"]);

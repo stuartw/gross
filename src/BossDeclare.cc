@@ -20,6 +20,8 @@ BossDeclare::BossDeclare() : BossCommand() {
   opt_["-stdin"] = "/dev/null"; 
   opt_["-stdout"] = "/dev/null"; 
   opt_["-stderr"] = "/dev/null"; 
+  opt_["-infiles"] = "";
+  opt_["-outfiles"] = "";
   opt_["-classad"] = "NULL"; 
   opt_["-log"] = "NULL"; 
 }
@@ -36,6 +38,8 @@ void BossDeclare::printUsage() const
        << "              -stdin <standard input file>" << std::endl
        << "              -stdout <standard output file>" << std::endl
        << "              -stderr <standard error file>" << std::endl
+       << "              -infiles <coma-separated file list in input> (AKA input sandbox)" << std::endl
+       << "              -outfiles <coma-separated file list in output> (AKA output sandbox)" << std::endl
        << "              -log <scheduler log file> ]" << std::endl
        << "            OR " << std::endl
        << "            [ -classad <classad file> ]" << std::endl

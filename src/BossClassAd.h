@@ -26,16 +26,14 @@ public:
   ~BossClassAd() {}
   int readCladFromFile(std::string file) {return CAL::readFromFile(classad_,file);}
   int readClad(std::istream& cladstr) {return CAL::read(classad_,cladstr);}
-  void dumpClad(std::string file) {CAL::writeToFile(classad_,file);}
+  void dumpClad(std::string file) {CAL::write(classad_,file);}
   int addExpr(std::string key ,std::string value) {
     std::string str = key + "=" + value;
     return CAL::addAttr(classad_,str);
   }
   void resetClad() {CAL::clear(classad_);}; 
   void ClAdLookup(std::string key, std::string* value) {
-    CAL::lookup(classad_,key,*value);
-    //added by stuart
-    CAL::removeOuterQuotes(*value);
+    *value = CAL::lookup(classad_,key);
   }
   iterator begin() { return classad_.begin(); }
   const_iterator begin() const { return classad_.begin(); }

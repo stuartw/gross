@@ -22,7 +22,7 @@ class BossDatabase;
 class BossRecoverJob : public BossCommand {
 private:
   int checkRunning(BossJob*, BossDatabase*);
-  int prompt();
+  int prompt(int);
   std::string redirectDir(std::string, std::string );
 public:
   BossRecoverJob();

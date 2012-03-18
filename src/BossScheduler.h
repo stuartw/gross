@@ -18,7 +18,6 @@ class BossDatabase;
 
 class BossScheduler {
 private:
-
   BossDatabase* db_;
 
   typedef std::map< std::string,std::string,std::less<std::string> > Jobs;
@@ -26,9 +25,13 @@ private:
   typedef Jobs::iterator Jobs_iterator;
   Jobs jobs_;
   time_t MAXDLY;
-  time_t time_;
-  void check();
-  void clear();
+  typedef std::map< std::string, time_t, std::less<std::string> > LTM;
+  typedef LTM::const_iterator LTM_const_iterator;
+  typedef LTM::iterator LTM_iterator;
+  LTM lastTimes_;
+  std::string DELIM;
+  void check(std::string);
+  void clear(std::string sch="");
 
 public:
 
@@ -37,9 +40,9 @@ public:
 
   // Session Methods
   int submit(BossJob* jobH, std::string exe_host);
-  int kill(BossJob* jobH);
+  int kill(BossJob* jobH, bool force);
   std::string query(BossJob* jobH);
-  std::string status(BossJob* jobH);
+  std::string status(BossJob* jobH, bool flag=false);
 };
 
 #endif

@@ -7,6 +7,7 @@
 #include "Output.hh"
 #include "Delete.hh"
 #include "Kill.hh"
+#include "ConfigureDB.hh"
 
 CommandContainer::CommandContainer() {
   // All the command interfaces are created here
@@ -40,6 +41,10 @@ CommandContainer::CommandContainer() {
   c=new Register();
   cmd_["register"]=c;
   cmd_["r"]=c;
+  //Configure GROSS DB
+  c=new ConfigureDB();
+  cmd_["configureDB"]=c;
+  //no alias - user does not call direct
 }
 
 CommandContainer::~CommandContainer() {

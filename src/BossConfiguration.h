@@ -21,7 +21,8 @@ private:
   std::string boss_top_dir_;
   std::string boss_version_;
   std::string boss_tmp_dir_;
-  int boss_upd_interval_;
+  int boss_min_upd_int_;
+  int boss_max_upd_int_;
   int boss_max_retry_;
   char* boss_db_host_;
   char* boss_db_domain_;
@@ -47,7 +48,8 @@ public:
   std::string boss_top_dir(){ return boss_top_dir_;}
   std::string boss_version(){ return boss_version_;}
   std::string boss_tmp_dir(){ return boss_tmp_dir_;}
-  int boss_upd_interval(){ return boss_upd_interval_;}
+  int boss_min_upd_int(){ return boss_min_upd_int_;}
+  int boss_max_upd_int(){ return boss_max_upd_int_;}
   int boss_max_retry(){ return boss_max_retry_;}
   char* boss_db_host(){ return boss_db_host_;}
   char* boss_db_domain(){ return boss_db_domain_;}

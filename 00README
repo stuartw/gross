@@ -1,5 +1,5 @@
                             ===============
-                             BOSS v3_4_0-1
+                             BOSS v3_4_0-3
                             ===============
 
 See documentation at http://www.bo.infn.it/cms/computing/BOSS/
@@ -7,9 +7,30 @@ See documentation at http://www.bo.infn.it/cms/computing/BOSS/
 Release notes
 =============
    * Version 3.4.0
-        o Use ClassAdLite instead of official classad package
-        o Syntax on BossAttr changed. See jobtest/test.clad for example
-        o Two-steps submission: "boss declare" + "boss submit -jobid <JobID>"
+	o change configuration file: remove BOSS_UPDATE_INTERVAL
+          add BOSS_MIN_UPD_INT and BOSS_MAX_UPD_INT
+        o *** Add time stamp field in JOB table *** 
+          dbUpdator updates at least every BOSS_MAX_UPD_INT seconds
+                            at most every BOSS_MIN_UPD_INT seconds
+	o add -avoidCheck option in boss query: guess status from time stamp
+        o add -force option in boss kill: set job killed regardless ret. status
+        o boss query calls each scheduler-query script only if needed
+	o use SirDB as abstract simple interface to DB
+          MySQL backend implemented. Draft Clarens backend
+	  At build time the variable:
+	    $CLIENT_DATABASE_BACKEND is checked to select backend in boss exec.
+            $RUNTIME_DATABASE_BACKEND is checked to select backend in dbUpdator
+            Default is MySQL.
+        o *** change in boss submit interface ***
+          Declaration of infiles and outfiles at submission time. See jobtest/
+        o *** Change in submission scripts interface. See sched_examples/ ***
+        o *** Change in registerScheduler interface. See sched_examples/ ***
+        o use ClassAdLite instead of official classad package
+        o *** Change BossAttr syntax. See jobtest/test.clad for example ***
+        o two-steps submission: "boss declare" + "boss submit -jobid <JobID>"
+	o replace BossOperatingSystem with OSUtils. Includes pstream library
+	o introduce jobID range for block operations on more (consecutive) jobs
+	o grant ALTER right to BOSS user on BOSS DB
    * Version 3.3.10
         o fixed bug in jobExecutor which prevented use without shared $BOSSDIR
         o BossArchive created in dedicated directory at submission time

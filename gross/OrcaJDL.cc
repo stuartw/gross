@@ -40,7 +40,7 @@ const string OrcaJDL::script(){
       else {os2 << " , ";}
       os2 << "\"" << (*i) << "\"";
     }
-    os << "OutputSandbox = {" << os2.str() << "};" <<endl;
+    os << "OutputSandbox = {" << os2.str() << /*", \"OutputFiles.txt\"" <<*/ "};" <<endl;
   }
   {//InGUIDs
     ostringstream os2;
@@ -53,11 +53,23 @@ const string OrcaJDL::script(){
     os << "InputData = {" << os2.str() << "};" <<endl;
   }
   //In case user has not added this requirement (duplicate entry is ok):
-  //if include rfio insists site must have rfio, not an OR statement, gridftp is basic requirement of all SE's
+  //gridftp is basic requirement of all SE's
   os << "DataAccessProtocol= {\"gsiftp\"};"<<endl;
+  {//OutputLFNs
+    os << "OutputData = {";
+    for (set<string>::const_iterator i=(job_->outGUIDs()).begin(); i!= (job_->outGUIDs()).end(); i++)  {
+      if (i!=job_->outGUIDs().begin()) os << ",";
+      os << endl;
+      os << "[" << endl;
+      os << "  OutputFile=\"" << *i << "\";" <<endl;
+      os << "  LogicalFileName=\"lfn:" << *i << job_->uniqSuffix() << "\";" << endl;
+      os << "]";
+    }
+    os << endl << "};" << endl;
+  }  
   //Any remaining info in JDL passed transparently through
-  os << userSpec_->jdlDump();
-
+    os << userSpec_->jdlDump();
+  
   return os.str();
 }
 

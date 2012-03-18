@@ -13,9 +13,10 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <mysql.h>
+#include "BossJobIDRange.h"
 
 class BossJob;
+class SirDBBackend;
 
 class BossDatabase { 
 protected:
@@ -32,7 +33,8 @@ protected:
   std::string table_type_;
   std::string mode_;
   time_t last_err_time_;
-  MYSQL* current_connection_;
+  SirDBBackend* backend;
+
 public:
   BossDatabase(std::string);
   ~BossDatabase();
@@ -51,7 +53,7 @@ public:
   int updateJobParameter(int, std::string, std::string, std::string);
   int existColumn(std::string, std::string);
   int registerScheduler(std::string, std::string, std::string, 
-			std::string, std::string, std::string);
+			std::string, std::string, std::string, std::string);
   int registerJob(std::string, std::string, std::string, std::string, 
                   std::string, std::string);
   int deleteScheduler(std::string);
@@ -60,6 +62,7 @@ public:
   int getSubmit(std::string, std::string);
   int getKill(std::string, std::string);
   int getQuery(std::string, std::string);
+  std::string getCopy(std::string);
   int getPreProcess(std::string, std::string);
   int getRuntimeProcess(std::string, std::string);
   int getPostProcess(std::string, std::string);
@@ -67,17 +70,9 @@ public:
 
   std::vector<std::string> schedulers();
   std::vector<std::string> jobTypes();
-  std::vector<BossJob*> jobs(char option='a', std::string type="", 
+  std::vector<BossJob*> jobs(BossJobIDRange idr, char option='a', std::string type="", 
                         std::string user="", std::string format="normal");
 private:
-  int connect();
-  int disconnect();
-  int tryQuery(MYSQL*, std::string);
-  int accept(std::string);
-  int affectedRows();
-  MYSQL_RES* getResults(std::string);
-  int clearResults(MYSQL_RES*);
-  void fatal(std::string, int);
   std::string escape_file(std::string, unsigned int);
   std::string wj(std::string, unsigned int, std::string);
   std::string DSLType2SQLType(std::string);

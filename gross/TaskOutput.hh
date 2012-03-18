@@ -38,6 +38,7 @@ private:
   string getDbSbox(Job* pJob) const; ///<Read from Db
   string getGridSbox(Job* pJob, string oDir="./") const; ///<Retrieve from Grid
   int saveSboxDir(Job* pJob, string sboxDir) const; ///<Save to Db
+  int checkOutputLFNs(Job* pJob, string sboxDir);
   
   //No implementation
   TaskOutput(const TaskOutput&);

@@ -7,12 +7,13 @@ chomp $dir;
 $fork_log="fork.log";
 open (LOG, ">>$dir/$fork_log") || die "Unable to write to local log file $dir/$fork_log";
 
-if($len==4) {
+if($len==5) {
     $executable = "jobExecutor";
     $jid = $ARGV[0];
     $logfile = $ARGV[1];
     $host = $ARGV[2];
     $topwdir = $ARGV[3];
+    $copycomm = $ARGV[4];
     print LOG "\n====>> New scheduler call number $jid\n";
     print LOG "$jid: Submitting $executable $jid...\n";
     print LOG "$jid: Redirecting stderr & stdout to log file $logfile\n";
@@ -36,7 +37,7 @@ if($len==4) {
     elsif ($pid == 0) {
 	# child
 	sleep 1;
-	if ( exec("$executable $jid `pwd` $topwdir 1>>$logfile 2>&1" ) != 0 ) {
+	if ( exec("$executable $jid `pwd` $topwdir $copycomm 1>>$logfile 2>&1" ) != 0 ) {
 	    print LOG "$jid:ERROR: exec($executable) failed";
 	}
 	exit(0);

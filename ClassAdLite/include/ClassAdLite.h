@@ -43,6 +43,8 @@ namespace CAL {
   void lookup(const ClassAdLite&, std::string, std::string&);
   void pop(ClassAdLite&, std::string, std::string&);
   std::vector<std::string> getList(std::string);
+  std::string list2string(const std::vector<std::string>&);
+
   void removeOuterQuotes(std::string&);
   void clear(ClassAdLite&);
 

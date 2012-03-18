@@ -9,7 +9,7 @@
 
 #include "BossJob.h"
 
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 #include "BossDatabase.h"
 #include "BossUpdateElement.h"
 #include "ClassAdLite.h"
@@ -24,27 +24,30 @@ using namespace std;
 
 void BossJob::initialize() {
 
-  generalData_.add("JOB","ID"      ,"INT AUTO_INCREMENT PRIMARY KEY");
-  generalData_.add("JOB","TYPE"    ,"VARCHAR(30) BINARY"            );
-  generalData_.add("JOB","SCH"     ,"VARCHAR(30) BINARY"            );
-  generalData_.add("JOB","SID"     ,"VARCHAR(100) BINARY"           );
-  generalData_.add("JOB","S_HOST"  ,"VARCHAR(30) BINARY"            );
-  generalData_.add("JOB","S_PATH"  ,"VARCHAR(50) BINARY"            );
-  generalData_.add("JOB","S_USR"   ,"VARCHAR(30) BINARY"            );
-  generalData_.add("JOB","EXEC"    ,"VARCHAR(30) BINARY"            );
-  generalData_.add("JOB","ARGS"    ,"VARCHAR(100) BINARY"           );
-  generalData_.add("JOB","STDIN"   ,"VARCHAR(50) BINARY"            );
-  generalData_.add("JOB","STDOUT"  ,"VARCHAR(50) BINARY"            );
-  generalData_.add("JOB","STDERR"  ,"VARCHAR(50) BINARY"            );
-  generalData_.add("JOB","E_HOST"  ,"VARCHAR(30) BINARY"            );
-  generalData_.add("JOB","E_PATH"  ,"VARCHAR(50) BINARY"            );
-  generalData_.add("JOB","E_USR"   ,"VARCHAR(30) BINARY"            );
-  generalData_.add("JOB","LOG"     ,"VARCHAR(50) BINARY"            );
-  generalData_.add("JOB","T_SUB"   ,"INT"                           );
-  generalData_.add("JOB","T_START" ,"INT"                           );
-  generalData_.add("JOB","T_STOP"  ,"INT"                           );
-  generalData_.add("JOB","T_STAT"  ,"VARCHAR(50) BINARY"            );
-  generalData_.add("JOB","RET_CODE","VARCHAR(11) BINARY"            );
+  generalData_.add("JOB","ID"       ,"INT"    );
+  generalData_.add("JOB","TYPE"     ,"VARCHAR");
+  generalData_.add("JOB","SCH"      ,"VARCHAR");
+  generalData_.add("JOB","SID"      ,"VARCHAR");
+  generalData_.add("JOB","S_HOST"   ,"VARCHAR");
+  generalData_.add("JOB","S_PATH"   ,"VARCHAR");
+  generalData_.add("JOB","S_USR"    ,"VARCHAR");
+  generalData_.add("JOB","EXEC"     ,"VARCHAR");
+  generalData_.add("JOB","ARGS"     ,"VARCHAR");
+  generalData_.add("JOB","STDIN"    ,"VARCHAR");
+  generalData_.add("JOB","STDOUT"   ,"VARCHAR");
+  generalData_.add("JOB","STDERR"   ,"VARCHAR");
+  generalData_.add("JOB","IN_FILES" ,"BLOB"   );
+  generalData_.add("JOB","OUT_FILES","BLOB"   );
+  generalData_.add("JOB","E_HOST"   ,"VARCHAR");
+  generalData_.add("JOB","E_PATH"   ,"VARCHAR");
+  generalData_.add("JOB","E_USR"    ,"VARCHAR");
+  generalData_.add("JOB","LOG"      ,"VARCHAR");
+  generalData_.add("JOB","T_SUB"    ,"INT"    );
+  generalData_.add("JOB","T_START"  ,"INT"    );
+  generalData_.add("JOB","T_STOP"   ,"INT"    );
+  generalData_.add("JOB","T_STAT"   ,"VARCHAR");
+  generalData_.add("JOB","RET_CODE" ,"VARCHAR");
+  generalData_.add("JOB","T_LAST"   ,"INT"    );
 }
 
 string BossJob::getGeneralData(string name) const {
@@ -84,9 +87,24 @@ string BossJob::getSpecificDataType(string name) const {
 }
 
 vector<string> BossJob::getJobTypes() const { 
-  //  BossOperatingSystem* sys=BossOperatingSystem::instance();
-  return CAL::getList(getJobTypeString());
-  //  return sys->splitString(getJobTypeString(),',');
+  vector<string> tmp = CAL::getList(getJobTypeString());
+  for (vector<string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+    CAL::removeOuterQuotes(*it);
+  return tmp;
+}
+
+vector<string> BossJob::getInFiles() const { 
+  vector<string> tmp = CAL::getList(getInFilesString());
+  for (vector<string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+    CAL::removeOuterQuotes(*it);
+  return tmp;
+}
+
+vector<string> BossJob::getOutFiles() const { 
+  vector<string> tmp = CAL::getList(getOutFilesString());
+  for (vector<string>::iterator it = tmp.begin(); it != tmp.end(); ++it)
+    CAL::removeOuterQuotes(*it);
+  return tmp;
 }
 
 int BossJob::isOfType(string type) const {
@@ -142,6 +160,14 @@ string BossJob::getStderr() const {
   return generalData_["STDERR"].value(); 
 }
 
+string BossJob::getInFilesString() const { 
+  return generalData_["IN_FILES"].value(); 
+}
+
+string BossJob::getOutFilesString() const { 
+  return generalData_["OUT_FILES"].value(); 
+}
+
 string BossJob::getExeHost() const { 
   return generalData_["E_HOST"].value(); 
 }
@@ -178,12 +204,17 @@ string BossJob::getStatTime() const {
   return generalData_["T_STAT"].value(); 
 }
 
+time_t BossJob::getLastContactTime() const { 
+  return atol(generalData_["T_LAST"].value().c_str()); 
+}
+
 string BossJob::getJobTypeString() const { 
   return generalData_["TYPE"].value(); 
 }
 
 void BossJob::setBasicInfo(string type, string exe, string args,
-			   string stdin, string stdout, string stderr, 
+			   string stdin, string stdout, string stderr,
+			   string infiles, string outfiles,
 			   string log) {
   setData(BossUpdateElement(getId(),"JOB","TYPE",type),true);
   setData(BossUpdateElement(getId(),"JOB","EXEC",exe),true);
@@ -191,6 +222,8 @@ void BossJob::setBasicInfo(string type, string exe, string args,
   setData(BossUpdateElement(getId(),"JOB","STDIN",stdin),true);
   setData(BossUpdateElement(getId(),"JOB","STDOUT",stdout),true);
   setData(BossUpdateElement(getId(),"JOB","STDERR",stderr),true);
+  setData(BossUpdateElement(getId(),"JOB","IN_FILES",infiles),true);
+  setData(BossUpdateElement(getId(),"JOB","OUT_FILES",outfiles),true);
   setData(BossUpdateElement(getId(),"JOB","LOG",log),true);
 }
 
@@ -205,16 +238,14 @@ void BossJob::setScheduler(string sched) {
 } 
 
 void BossJob::setExeInfo(string host, string path, string user, time_t time) {
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
   setData(BossUpdateElement(getId(),"JOB","E_HOST",host),true);
   setData(BossUpdateElement(getId(),"JOB","E_PATH",path),true);
   setData(BossUpdateElement(getId(),"JOB","E_USR",user),true);
-  setData(BossUpdateElement(getId(),"JOB","T_START",sys->convert2string(time)),true);
+  setData(BossUpdateElement(getId(),"JOB","T_START",OSUtils::convert2string(time)),true);
 }
 
 void BossJob::setId(int id) {
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-  generalData_["ID"]      = sys->convert2string(id); 
+  generalData_["ID"]      = OSUtils::convert2string(id); 
 }
 
 void BossJob::setSid(string sid) { 
@@ -226,17 +257,19 @@ void BossJob::setLog(string log) {
 }
 
 void BossJob::setSubTime(time_t time) { 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-  setData(BossUpdateElement(getId(),"JOB","T_SUB",sys->convert2string(time)),true);
+  setData(BossUpdateElement(getId(),"JOB","T_SUB",OSUtils::convert2string(time)),true);
 }
 
 void BossJob::setStopTime(time_t time) { 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-  setData(BossUpdateElement(getId(),"JOB","T_STOP",sys->convert2string(time)),true);
+  setData(BossUpdateElement(getId(),"JOB","T_STOP",OSUtils::convert2string(time)),true);
 }
 
 void BossJob::setStatTime(string time) { 
   setData(BossUpdateElement(getId(),"JOB","T_STAT",time),true);
+}
+
+void BossJob::setLastContactTime(time_t time) { 
+  setData(BossUpdateElement(getId(),"JOB","T_LAST",OSUtils::convert2string(time)),true);
 }
 
 void BossJob::setRetCode(string code) {
@@ -245,8 +278,7 @@ void BossJob::setRetCode(string code) {
 
 int BossJob::setData(string fname, bool force) {
   int ret_val = 0;
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-  if (sys->fileExist(fname)) {
+  if (OSUtils::fileExist(fname)) {
     ifstream usfile(fname.c_str());
     if (usfile) {
       ret_val = setData(usfile, force);
@@ -281,22 +313,20 @@ int BossJob::setData(const BossUpdateSet& us, bool force) {
 }
 
 int BossJob::setData(const BossUpdateElement& elem, bool force) {
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
   int ret_val = -1;
   BossJobData* data = (elem.table()=="JOB") ? &generalData_ : &specificData_;
-  if( force || (getId() == elem.jobid() && 
-		data->existColumn(elem.table(),elem.varname())) ) {
+  if( force || data->existColumn(elem.table(),elem.varname()) ) {
     data->assign(elem.varname(),elem.varvalue()); 
     ret_val = 0;
     if (db_)
       db_->updateJobParameter(elem.jobid(),elem.table(),
 			      elem.varname(),elem.varvalue() );
-    if (sys->fileExist(journalFile_))
-      sys->append(journalFile_,elem.str());
+    if (OSUtils::fileExist(journalFile_))
+      OSUtils::append(journalFile_,elem.str());
   } else {
     cerr << "BossJob::setData: no such parameter: " 
 	 << elem.table() << "." << elem.varname()  
-	 << " for job " << getId() << "!" << endl;
+	 << " for job " << elem.jobid() << "!" << endl;
   }
   return ret_val;
 }
@@ -367,7 +397,6 @@ void BossJob::dumpSpecific(ostream& os) const{
 }
 
 void BossJob::printGeneral(string output_type, string state) const{
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
   if        ( output_type == "header_normal" ) {
     cout << wj("ID", 5);
     cout << wj(" ",1);
@@ -380,7 +409,7 @@ void BossJob::printGeneral(string output_type, string state) const{
     cout << wj("START TIME", 15);
     cout << wj("STOP TIME", 15);     
   } else if ( output_type == "normal" ) {
-    cout << wj(sys->convert2string(getId()), 5);
+    cout << wj(OSUtils::convert2string(getId()), 5);
     cout << wj(" ",1);
     cout << wj(getSubUser(), 10);
     if ( getArguments() == "" )
@@ -446,14 +475,13 @@ string BossJob::wj(string data, unsigned int width, string justify) const {
 }
 
 string BossJob::str_time(const time_t* time) const {
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
   // HH:MM:SS GG/MM
   struct tm* tt = localtime(time); 
-  string hh = (tt->tm_hour>9) ? sys->convert2string(tt->tm_hour):string("0")+sys->convert2string(tt->tm_hour);
-  string mm = (tt->tm_min>9)  ? sys->convert2string(tt->tm_min) :string("0")+sys->convert2string(tt->tm_min);
-  string ss = (tt->tm_sec>9)  ? sys->convert2string(tt->tm_sec) :string("0")+sys->convert2string(tt->tm_sec);
-  string gg = (tt->tm_mday>9) ? sys->convert2string(tt->tm_mday):string("0")+sys->convert2string(tt->tm_mday);
-  string MM = ((tt->tm_mon)+1>9)  ? sys->convert2string((tt->tm_mon)+1) :string("0")+sys->convert2string((tt->tm_mon)+1);
+  string hh = (tt->tm_hour>9) ? OSUtils::convert2string(tt->tm_hour):string("0")+OSUtils::convert2string(tt->tm_hour);
+  string mm = (tt->tm_min>9)  ? OSUtils::convert2string(tt->tm_min) :string("0")+OSUtils::convert2string(tt->tm_min);
+  string ss = (tt->tm_sec>9)  ? OSUtils::convert2string(tt->tm_sec) :string("0")+OSUtils::convert2string(tt->tm_sec);
+  string gg = (tt->tm_mday>9) ? OSUtils::convert2string(tt->tm_mday):string("0")+OSUtils::convert2string(tt->tm_mday);
+  string MM = ((tt->tm_mon)+1>9)  ? OSUtils::convert2string((tt->tm_mon)+1) :string("0")+OSUtils::convert2string((tt->tm_mon)+1);
   return hh+":"+mm+":"+ss+" "+gg+"/"+MM;
 }
 

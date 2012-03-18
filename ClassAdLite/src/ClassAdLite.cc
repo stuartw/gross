@@ -106,7 +106,7 @@ void CAL::lookup(const ClassAdLite& clad, std::string key, std::string& value) {
   if (it != clad.end()) {
     value=it->second;
     // DEBUG
-    //std::cout << "lookup found " << key << "=" << value << std::endl;
+    // std::cout << "lookup found " << key << "=" << value << std::endl;
     // END DEBUG
   }
 }
@@ -116,7 +116,7 @@ void CAL::pop(ClassAdLite& clad, std::string key, std::string& value) {
   if (it != clad.end()) {
     value=it->second;
     // DEBUG
-    //std::cout << "pop found " << key << "=" << value << std::endl;
+    // std::cout << "pop found " << key << "=" << value << std::endl;
     // END DEBUG
     CAL::removeAttr(clad,it);
   }
@@ -163,6 +163,23 @@ std::vector<std::string> CAL::getList(std::string buf) {
 	ret_val.push_back(line);
       i = j+1;
     }
+  }
+  return ret_val;
+}
+
+std::string CAL::list2string(const std::vector<std::string>& vl) {
+  std::string ret_val;
+  if ( vl.size() == 0 ) {
+    ;
+  } else if (vl.size() == 1 ) {
+    ret_val = vl[0];
+  } else {
+    ret_val = "{";
+    std::vector<std::string>::const_iterator it;
+    std::vector<std::string>::const_iterator vlend = vl.end();
+    for(it=vl.begin();it!=vlend; ++it)
+      ret_val += (*it) + ",";
+    ret_val[ret_val.size()-1] = '}'; // replace last coma with }
   }
   return ret_val;
 }

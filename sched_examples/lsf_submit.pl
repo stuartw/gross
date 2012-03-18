@@ -1,7 +1,7 @@
 #! /usr/bin/perl
 
 $len=@ARGV;
-if($len==4) {
+if($len==5) {
     # on the execution host jobExecutor must be 
     # under the same path as in the submitting host:
     $executable = "$ENV{BOSSDIR}/bin/jobExecutor";
@@ -9,6 +9,7 @@ if($len==4) {
     $logfile = $ARGV[1];
     $host = $ARGV[2];
     $topwdir = $ARGV[3];
+    $copycomm = $ARGV[4];
     $dir=`pwd`;
     chomp $dir;
 
@@ -23,7 +24,7 @@ if($len==4) {
 	}
     }
 
-    $subcmd = "bsub -o $logfile $hoststring -e $logfile $executable $jid $dir $topwdir |";
+    $subcmd = "bsub -o $logfile $hoststring -e $logfile $executable $jid $dir $topwdir $copycomm |";
 
     # open a pipe to read the stdout of bsub
     open (SUB, $subcmd);

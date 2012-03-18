@@ -10,7 +10,7 @@
 #include <iostream>
 #include "BossRegisterScheduler.h"
 #include "BossDatabase.h"
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 
 using namespace std;
 
@@ -19,6 +19,7 @@ BossRegisterScheduler::BossRegisterScheduler() : BossCommand() {
   opt_["-submit"] = "NULL"; 
   opt_["-kill"] = "NULL"; 
   opt_["-query"] = "NULL"; 
+  opt_["-copy"] = "NONE"; 
   opt_["-topwdir"] = ""; 
   opt_["-default"] = "FALSE"; 
 }
@@ -33,6 +34,7 @@ void BossRegisterScheduler::printUsage() const
        << "          -submit <submit script> " << endl
        << "          -kill <kill script> " << endl
        << "          -query <query script> " << endl
+       << "          -copy <copy command> " << endl
        << "          -topwdir <top working dir on computing hosts> " << endl
        << "          -default " << endl
        << endl;
@@ -42,22 +44,21 @@ int BossRegisterScheduler::execute() {
   //  for (Options_const_iterator i=opt_.begin();i!=opt_.end();i++)
   //    cout << i->first << "=" << i->second << endl;
 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
   BossDatabase db("super");
 
   // check if the scheduler exists
   if ( !db.existSchType(opt_["-name"]) ) {
     // check if exists the files
-    if ( !sys->fileExist(opt_["-submit"]) ) {
-      cout << "Submit file not exist" << endl;
+    if ( !OSUtils::fileExist(opt_["-submit"]) ) {
+      cout << "Submit file does not exist" << endl;
       return -5;
     }
-    if ( !sys->fileExist(opt_["-kill"]) ) {
-      cout << "Kill file not exist" << endl;
+    if ( !OSUtils::fileExist(opt_["-kill"]) ) {
+      cout << "Kill file does not exist" << endl;
       return -6;
     }
-    if ( !sys->fileExist(opt_["-query"]) ) {
-      cout << "Query file not exist" << endl;
+    if ( !OSUtils::fileExist(opt_["-query"]) ) {
+      cout << "Query file does not exist" << endl;
       return -7;
     }
   } else {
@@ -74,7 +75,7 @@ int BossRegisterScheduler::execute() {
   }
     
   // update the database
-  db.registerScheduler(opt_["-name"],opt_["-default"],opt_["-topwdir"],opt_["-submit"],opt_["-kill"],opt_["-query"]);
+  db.registerScheduler(opt_["-name"],opt_["-default"],opt_["-topwdir"],opt_["-submit"],opt_["-kill"],opt_["-query"],opt_["-copy"]);
 
   return 0;
 }

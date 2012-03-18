@@ -3,7 +3,9 @@
 CladLookup::CladLookup(const string& myCladSpec) : jdlDump_("NULL"){
   if(Log::level()>2) cout << "CladLookup::CladLookup() Creating CladLookup object " <<endl;
   std::istringstream is(myCladSpec);
-  clad_ = new BossClassAd::BossClassAd(is);
+  //clad_ = new BossClassAd::BossClassAd(is);
+  clad_ = new CAL::ClassAdLite();
+  CAL::read(*clad_,is);
 }
 CladLookup::~CladLookup(){
   if(clad_) delete clad_;
@@ -11,13 +13,16 @@ CladLookup::~CladLookup(){
 const string CladLookup::jdlDump() const {
   if(jdlDump_!="NULL") return jdlDump_; //This to return a forced jdlDump value set in setJdlDump
   ostringstream os;
-  for(BossClassAd::const_iterator i = clad_->begin() ; i != clad_->end() ; i++) { 
-    string myIdent=clad_->getIdent(i);
-    string myValue=clad_->getValue(i);
+  //for(BossClassAd::const_iterator i = clad_->begin() ; i != clad_->end() ; i++) { 
+  for(CAL::ClassAdLite::const_iterator i = clad_->begin(); i != clad_->end(); i++) {
+    //string myIdent=clad_->getIdent(i);
+    string myIdent=i->first;
+    string myValue=i->second;
     //getIdent and getValue (in)conveniently remove brackets and 
     //other syntax needed again in jdl, so we need to put them back in - ug.
     string::size_type i = myValue.find_first_not_of(" \t");
     if (! (cladMap_.find(myIdent) == cladMap_.end())) continue;
+ //Do we really need this? TO DO TEST !!!
     if (myIdent!="Requirements") {
       //string::size_type i = myValue.find_first_not_of(" \t");
       if(!(myValue.substr(i,1)=="{" || myValue.substr(i,1)=="\"" || myValue.substr(i,1)=="(")) {
@@ -58,7 +63,9 @@ void CladLookup::string2vec (const string& line, vector<string>& strings) const 
 const string CladLookup::lookup(const string& myKey) {
   if(cladMap_.find(myKey) == cladMap_.end()) {
     string buff("");
-    clad_->BossClassAd::ClAdLookup(myKey, &buff);
+    //clad_->BossClassAd::ClAdLookup(myKey, &buff);
+    CAL::lookup(*clad_,myKey,buff);
+    CAL::removeOuterQuotes(buff);
     cladMap_[myKey] = buff;
   }
   return cladMap_.find(myKey)->second;

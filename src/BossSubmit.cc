@@ -13,12 +13,12 @@
 #include "BossSubmit.h"
 #include "BossKernel.h"
 #include "BossJob.h"
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 #include "BossDatabase.h"
 #include "BossScheduler.h"
 
 BossSubmit::BossSubmit() : BossCommand() {
-  opt_["-jobid"] = "NULL"; 
+  opt_["-jobid"] = "0:-1";
   opt_["-jobtype"] = "stdjob"; 
   opt_["-scheduler"] = "NULL"; 
   opt_["-executable"] = "NULL"; 
@@ -26,6 +26,8 @@ BossSubmit::BossSubmit() : BossCommand() {
   opt_["-stdin"] = "/dev/null"; 
   opt_["-stdout"] = "/dev/null"; 
   opt_["-stderr"] = "/dev/null"; 
+  opt_["-infiles"] = "";
+  opt_["-outfiles"] = "";
   opt_["-classad"] = "NULL"; 
   opt_["-host"] = "NULL";
   opt_["-log"] = "NULL"; 
@@ -38,19 +40,21 @@ void BossSubmit::printUsage() const
   std::cerr << "Usage:" << std::endl
        << "boss submit " << std::endl;
   std::cerr
-       << "            -scheduler <registered scheduler>" << std::endl
-       << "            -host <hostname>" << std::endl
-       << "            [ -jobtype <registered job type> (stdjob)" << std::endl
-       << "              -executable <executable file to be submitted>" << std::endl
-       << "              -args <arguments to the executable>" << std::endl
-       << "              -stdin <standard input file>" << std::endl
-       << "              -stdout <standard output file>" << std::endl
-       << "              -stderr <standard error file>" << std::endl
-       << "              -log <scheduler log file> ]" << std::endl
-       << "            OR " << std::endl
-       << "            [ -classad <classad file> ]" << std::endl
-       << "            OR " << std::endl
-       << "            [ -jobid <declared job identifier> ]" << std::endl
+       << "           -scheduler <registered scheduler>" << std::endl
+       << "           -host <hostname>" << std::endl
+       << "           [ -jobtype <registered job type> (stdjob)" << std::endl
+       << "             -executable <executable file to be submitted>" << std::endl
+       << "             -args <arguments to the executable>" << std::endl
+       << "             -stdin <standard input file>" << std::endl
+       << "             -stdout <standard output file>" << std::endl
+       << "             -stderr <standard error file>" << std::endl
+       << "             -infiles <coma-separated file list in input> (AKA input sandbox)" << std::endl
+       << "             -outfiles <coma-separated file list in output> (AKA output sandbox)" << std::endl
+       << "             -log <scheduler log file> ]" << std::endl
+       << "           OR " << std::endl
+       << "           [ -classad <classad file> ]" << std::endl
+       << "           OR " << std::endl
+       << "           [ -jobid [<job id> | <first job id>:<last job id>]" << std::endl
        << std::endl;
 }
 
@@ -60,28 +64,22 @@ int BossSubmit::execute() {
 
   BossDatabase db("super");
 
-  BossJob* jobH = 0;
-  if ( opt_["-jobid"] != "NULL" ) {    
-    // If the -jobid option is used, try to get the job handle from the DB
-    jobH = db.findJob(atoi(opt_["-jobid"].c_str()));
-    if ( !jobH ) {
-      std::cerr << "JobID " <<  opt_["-jobid"] << " not found" << std::endl;
-      return -1;
-    }
-  } else {
-    // Create an entry in the db for the job
-    jobH = Boss::declareJob(opt_,db);
+  BossJobIDRange idr(opt_["-jobid"]);
+
+  // if the job was not previously declared (no -jobid option), do it.
+  if ( idr.size()<1 ) {  
+    BossJob* jobH = Boss::declareJob(opt_,db);
     if ( !jobH ) {
       std::cerr << "Error creating job" << std::endl;
-      return -2;
+      return -1;
     }
+    idr.updateRange(OSUtils::convert2string(jobH->getId()));
+    delete jobH;
   }
-  int id = jobH->getId();
-  std::cout << "Job ID " << id << std::endl;
 
   // check if the scheduler exists
   if ( opt_["-scheduler"]!="NULL" && !db.existSchType(opt_["-scheduler"]) ) {
-    std::cerr << "Scheduler not known: " << opt_["-jobtype"] << std::endl;
+    std::cerr << "Scheduler not known: " << opt_["-scheduler"] << std::endl;
     return -3;
   } else if ( opt_["-scheduler"]=="NULL" ) {
     // get the default scheduler
@@ -92,20 +90,30 @@ int BossSubmit::execute() {
       return -4;
     }
   }
-  jobH->setScheduler(opt_["-scheduler"]);
-
-  // Submit the job
+  
   int ret_val = 0;
-  BossScheduler sched(&db);
-  if ( sched.submit(jobH, opt_["-host"]) != 0 ) {
-    std::cerr << "Unable to submit job" << std::endl;
-    ret_val = -5;
+  // loop over jobs
+  for (int id=idr.ifirst(); id<=idr.ilast(); ++id) {
+    std::string strid = OSUtils::convert2string(id);
+    BossJob* jobH = db.findJob(id);
+    std::cout << "Job ID " << id << std::endl;
+    // go to the direcory where the job was declared
+    std::string subdir = jobH->getSubPath();
+    OSUtils::changeDir(subdir);
+    // Submit the job 
+    int ret_val = 0;
+    jobH->setScheduler(opt_["-scheduler"]);
+    BossScheduler sched(&db);
+    if ( sched.submit(jobH, opt_["-host"]) != 0 ) {
+      std::cerr << "Unable to submit job" << std::endl;
+      ++ret_val;
+      continue;
+    }
+    // Remove the temporary ClassAd file used by the submit script
+    std::string ocladfname = std::string("BossClassAdFile_") + OSUtils::convert2string(id);
+    if ( OSUtils::fileExist(ocladfname) ) 
+      OSUtils::fileRemove(ocladfname);
+    delete jobH;
   }
-  // Remove the temporary ClassAd file used by the submit script
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-  std::string ocladfname = std::string("BossClassAdFile_") + sys->convert2string(id);
-  if ( sys->fileExist(ocladfname) ) 
-    sys->fileRemove(ocladfname);
-  delete jobH;
   return ret_val;
 }

@@ -1,15 +1,15 @@
 // /////////////////////////////////////////////////////////////////////
-// Program: BOSS
-// Version: 2.1
-// File:    BossOperatingSystem.cpp
-// Authors: Claudio Grandi (INFN BO), Alessandro Renzi (INFN BO)
-// Date:    31/01/2002
+// Program: Utilities
+// Version: 1.0
+// File:    OperatingSystem.cpp
+// Authors: Claudio Grandi (INFN BO)
+// Date:    15/03/2004
 // Note:
 // /////////////////////////////////////////////////////////////////////
 
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 
-#include "BossProcess.h"
+#include "Process.h"
 
 #include <iostream>
 
@@ -25,22 +25,10 @@
 #include "pstream.h"
 
 using namespace std;
-
-BossOperatingSystem* BossOperatingSystem::instance_ = 0;
-
-BossOperatingSystem* BossOperatingSystem::instance() {
-  if(!instance_)
-    instance_ = new BossOperatingSystem();
-  return instance_;
-}
-
-BossOperatingSystem::BossOperatingSystem() {
-}
-
-BossOperatingSystem::~BossOperatingSystem() {}
+using namespace OSUtils;
 
 string
-BossOperatingSystem::getUserName() {
+OSUtils::getUserName() {
 
   string ret_val = "unknown";
   uid_t uid = getuid();
@@ -59,7 +47,7 @@ BossOperatingSystem::getUserName() {
 
 
 string
-BossOperatingSystem::getHostName() {
+OSUtils::getHostName() {
 
   char buffer[128];
   if ( gethostname(buffer,128) ) {
@@ -71,13 +59,13 @@ BossOperatingSystem::getHostName() {
 }
 
 int
-BossOperatingSystem::getPid() {
+OSUtils::getPid() {
 
   return getpid();
 }
 
 string 
-BossOperatingSystem::getCurrentDir() {
+OSUtils::getCurrentDir() {
 
   char buffer[128];
   if ( getcwd(buffer,128) == NULL ) {
@@ -89,7 +77,7 @@ BossOperatingSystem::getCurrentDir() {
 }
 
 string
-BossOperatingSystem::getEnv(string env) {
+OSUtils::getEnv(string env) {
 
   char* gte = getenv(env.c_str() );
   if ( gte )
@@ -99,12 +87,37 @@ BossOperatingSystem::getEnv(string env) {
 }
 
 int
-BossOperatingSystem::setEnv(string name, string value) {
+OSUtils::setEnv(string name, string value) {
   return setenv(name.c_str(),value.c_str(),1);
 }
 
+string
+OSUtils::expandEnv(const string& s) {
+  string expanded;
+  string var;
+  unsigned int len = s.length();
+  
+  for(unsigned int k = 0; k < len; k++) {
+    if(k < len-1 && s[k] == '$') { 
+      var = "";
+      ++k;
+      if(s[k] == '{')
+        ++k;
+      while(k < len && (isalnum(s[k]) || s[k] == '_'))
+        var += s[k++]; 
+      if(k < len && s[k] != '}')
+        --k; 
+      expanded += getEnv(var);
+    }
+    else
+      expanded += s[k];
+  }
+
+  return expanded;
+}
+
 int 
-BossOperatingSystem::changeDir(string dir) {
+OSUtils::changeDir(string dir) {
 
   if ( chdir(dir.c_str()) ) {
     cerr << "chdir: System Call Error: " << strerror(errno) << endl;
@@ -115,13 +128,13 @@ BossOperatingSystem::changeDir(string dir) {
 }
 
 time_t 
-BossOperatingSystem::getTime(void) {
+OSUtils::getTime(void) {
 
   return time(NULL);
 }
 
 string
-BossOperatingSystem::getStrTime(void) {
+OSUtils::getStrTime(void) {
 
   string d;
   time_t tt;
@@ -135,7 +148,7 @@ BossOperatingSystem::getStrTime(void) {
 }
 
 string 
-BossOperatingSystem::time2StrTime(time_t* time) {
+OSUtils::time2StrTime(time_t* time) {
 
   string d = ctime(time);
 
@@ -143,7 +156,7 @@ BossOperatingSystem::time2StrTime(time_t* time) {
 }
 
 int
-BossOperatingSystem::fileSize(string fname, unsigned int *size) {
+OSUtils::fileSize(string fname, unsigned int *size) {
 
   if ( fileExist(fname) ) {
     struct stat for_len; 
@@ -157,7 +170,7 @@ BossOperatingSystem::fileSize(string fname, unsigned int *size) {
     return 0;
 }
 int 
-BossOperatingSystem::dirExist(string dname) {
+OSUtils::dirExist(string dname) {
   int ret = 1;
   struct stat buf;
   stat(dname.c_str(),&buf);
@@ -167,7 +180,7 @@ BossOperatingSystem::dirExist(string dname) {
 }
 
 int
-BossOperatingSystem::fileExist(string fname) {
+OSUtils::fileExist(string fname) {
   int ret = 0;
   struct stat buf;
   if ( stat(fname.c_str(),&buf) == 0 )
@@ -176,7 +189,7 @@ BossOperatingSystem::fileExist(string fname) {
 }
 
 bool
-BossOperatingSystem::isMine(string name) {
+OSUtils::isMine(string name) {
    int ret = false;
   struct stat buf;
   stat(name.c_str(),&buf);
@@ -186,40 +199,40 @@ BossOperatingSystem::isMine(string name) {
 }
 
 int
-BossOperatingSystem::fileCopy(string src, string dst) {
+OSUtils::fileCopy(string src, string dst) {
 
   return system(string("cp "+src+" "+dst).c_str());
 
 }
 
 int
-BossOperatingSystem::makeDir(string name) {
+OSUtils::makeDir(string name) {
 
   return system(string("mkdir -p "+name+" ").c_str());
 
 }
 
 int
-BossOperatingSystem::fileRemove(string fname) {
+OSUtils::fileRemove(string fname) {
 
   return system(string("rm -f "+fname).c_str());
 }
 
 int
-BossOperatingSystem::dirRemove(string dname) {
-
+OSUtils::dirRemove(string dname) {
+  
   return system(string("rm -rf "+dname).c_str());
 }
 
 int
-BossOperatingSystem::fileChmod(string mode, string dst) {
+OSUtils::fileChmod(string mode, string dst) {
 
   return system(string("chmod "+mode+" "+dst).c_str());
 
 }
 
 string 
-BossOperatingSystem::basename(string fnam) {
+OSUtils::basename(string fnam) {
   int siz=fnam.size();
   int pos=fnam.find_last_of('/',siz);
   if(pos>=0&&pos<siz)  fnam=fnam.substr(pos+1,siz-pos);
@@ -227,7 +240,7 @@ BossOperatingSystem::basename(string fnam) {
 }
 
 string 
-BossOperatingSystem::dirname(string fnam) {
+OSUtils::dirname(string fnam) {
   string dir = "";
   int siz=fnam.size();
   int pos=fnam.find_last_of('/',siz);
@@ -236,7 +249,7 @@ BossOperatingSystem::dirname(string fnam) {
 }
 
 int 
-BossOperatingSystem::makeFIFO(string file, int mode) {
+OSUtils::makeFIFO(string file, int mode) {
   mkfifo (file.c_str(),mode);
     // LOGGING
 #ifdef LOGL3
@@ -246,7 +259,12 @@ BossOperatingSystem::makeFIFO(string file, int mode) {
 }
 
 int
-BossOperatingSystem::forkProcess(BossProcess* proc) {
+OSUtils::shell(string comm) {
+  return system(comm.c_str());
+}
+
+int
+OSUtils::forkProcess(OSUtils::Process* proc) {
   // fork the process
   int pid;
   if ( (pid = fork()) < 0 ) {
@@ -264,11 +282,11 @@ BossOperatingSystem::forkProcess(BossProcess* proc) {
 }
 
 int
-BossOperatingSystem::waitProcess(BossProcess* proc, string option) {
+OSUtils::waitProcess(OSUtils::Process* proc, string option) {
   int ret_val = 0;
   int pid = proc->getPid();
   cout << "Wait for pid " << pid << endl;
-  int status;
+  int status = 1;
   string ret_code;
   int opt = 0;
   if      (option=="WNOHANG")
@@ -284,15 +302,28 @@ BossOperatingSystem::waitProcess(BossProcess* proc, string option) {
     ret_val = -1;
   }
   // intercept the exit code
-  if ( WIFEXITED(status) != 0   )
-    proc->setRetCode(                   convert2string(WEXITSTATUS(status)) );
-  if ( WIFSIGNALED(status) != 0 )
-    proc->setRetCode( string("signal ")+convert2string(WTERMSIG(status))    );
+  string WT;
+  int WC;
+  if ( WIFEXITED(status)   != 0 ) {
+    WT = "";
+    WC = WEXITSTATUS(status);
+  } else if ( WIFSIGNALED(status) != 0 ) {
+    WT = "SIGNAL ";
+    WC = WTERMSIG(status);
+  } else if ( WIFSTOPPED(status)  != 0 ) {
+    WT = "STOP ";
+    WC = WSTOPSIG(status);
+  } else {
+    WT = "UNKNOWN ";
+    WC = -999;
+  }
+  // std::cerr << WT << WC << std::endl;
+  proc->setRetCode(WT+" "+convert2string(WC));
   return ret_val;
 }
 
 int
-BossOperatingSystem::waitProcessMaxTime(BossProcess* proc, int maxtime) {
+OSUtils::waitProcessMaxTime(OSUtils::Process* proc, int maxtime) {
   int ret_val = 0;
   const int interval = 5; // one retry every 5 seconds
   int maxretry = abs(maxtime)/interval + 1;
@@ -303,25 +334,35 @@ BossOperatingSystem::waitProcessMaxTime(BossProcess* proc, int maxtime) {
       sleep(interval);
     }
     if (retry>=maxretry) {
-      terminateProcess(proc);
-      ret_val = -1;
+      ret_val = terminateProcess(proc);
     }
   }
   return ret_val;
 }
 
-void 
-BossOperatingSystem::terminateProcess(BossProcess* proc) {
+std::string
+OSUtils::checkProcess(OSUtils::Process* proc) {
+  std::string ret_val = "unknown";
+  if (waitProcess(proc,"WNOHANG") == 1 )
+    ret_val = "running";
+  else
+    ret_val = proc->retCode();
+  return ret_val;
+}
+
+int 
+OSUtils::terminateProcess(OSUtils::Process* proc) {
   int pid = proc->getPid();
   cout << "Terminate pid " << pid << endl;
   int ret = kill(pid,15);
   if(ret)
     ret += kill(pid,9);
-  proc->setRetCode(convert2string(ret)); // 0 ok, -1 killed with sig=9, -2 error
+  proc->setRetCode("killed by user"); // 0 ok, -1 killed with sig=9, -2 error
+  return ret;
 }
 
 vector<string> 
-BossOperatingSystem::splitString(string s, char c) {
+OSUtils::splitString(const string& s, char c) {
   vector<string> ret;
   unsigned int i = 0;
   unsigned int n = s.size();
@@ -337,7 +378,7 @@ BossOperatingSystem::splitString(string s, char c) {
 }
 
 void
-BossOperatingSystem::trim(string& str) {
+OSUtils::trim(string& str) {
   string dummy;
   for (unsigned int i=0; i<str.size(); i++ ) {
     char ch = str[i];
@@ -348,27 +389,30 @@ BossOperatingSystem::trim(string& str) {
 }
 
 void
-BossOperatingSystem::sleep(unsigned delay) {
+OSUtils::sleep(unsigned delay) {
   system((string("sleep ")+convert2string(delay)).c_str());
 }
 
 int
-BossOperatingSystem::tar(string opt, string name, const vector<string>& files) {
+OSUtils::tar(string opt, string name, const vector<string>& files) {
   string command = "tar "+opt+"f "+name;
   vector<string>::const_iterator it;
   for (it=files.begin(); it<files.end(); it++)
     command += " "+(*it);
+  // DEBUG
+  // std::cout << command << std::endl;
+  // END DEBUG
   return system(command.c_str());
 }
 
 int
-BossOperatingSystem::append(string file, string str) {
+OSUtils::append(string file, string str) {
   string command = "echo \""+str+"\" >> "+file;
   return system(command.c_str());
 }
 
 string 
-BossOperatingSystem::which(string file) {
+OSUtils::which(string file) {
   string ret = "";
   string command = "which " + file;
   redi::ipstream psub(command.c_str());
@@ -380,12 +424,12 @@ BossOperatingSystem::which(string file) {
 }
 
 int
-BossOperatingSystem::touch(string file) {
+OSUtils::touch(string file) {
   return system(string("touch "+file).c_str());
 }
 
 char* 
-BossOperatingSystem::string2char(string s) {
+OSUtils::string2char(string s) {
   char* return_val = 0;
   if ( s != "NULL" ) {
     return_val = new char[s.size()+1]; 
@@ -395,6 +439,14 @@ BossOperatingSystem::string2char(string s) {
 }
 
 int 
-BossOperatingSystem::string2int(string s) {
+OSUtils::string2int(string s) {
   return atoi(string2char(s));
 }
+
+// void
+// OSUtils::getCommandOutput(std::string command, std::iostream& s) {
+//   redi::ipstream ips(command.c_str());
+//   std::string line;
+//   while(std::getline(ips,line))
+//     s << line << std::endl;
+// }

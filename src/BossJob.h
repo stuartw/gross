@@ -69,6 +69,10 @@ public:
   std::string getStdin() const ;
   std::string getStdout() const;
   std::string getStderr() const ;
+  std::vector<std::string> getInFiles() const ;
+  std::vector<std::string> getOutFiles() const ;
+  std::string getInFilesString() const ;
+  std::string getOutFilesString() const ;
   std::string getExeHost() const;
   std::string getExePath() const;
   std::string getExeUser() const;
@@ -78,6 +82,7 @@ public:
   time_t getStartTime() const;
   time_t getStopTime() const;
   std::string getStatTime() const;
+  time_t getLastContactTime() const;
 
   void printGeneral(std::string output_type, std::string state="R") const;
   void printSpecific(std::string) const;
@@ -93,7 +98,8 @@ public:
   int setData(const BossUpdateSet& us, bool force = false);
 
   void setBasicInfo(std::string,std::string,std::string,std::string,
-                    std::string,std::string,std::string);
+                    std::string,std::string,std::string,std::string,
+		    std::string);
   void setSubInfo(std::string,std::string,std::string);
   void setScheduler(std::string);
   void setExeInfo(std::string,std::string,std::string,time_t);
@@ -103,6 +109,7 @@ public:
   void setSubTime(time_t);
   void setStopTime(time_t);
   void setStatTime(std::string);
+  void setLastContactTime(time_t);
   void setRetCode(std::string);
 
   int generalData2UpdateSet(BossUpdateSet&) const;

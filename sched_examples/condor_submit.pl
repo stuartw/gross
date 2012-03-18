@@ -8,12 +8,13 @@ chomp $dir;
 $condor_log="condor.log";
 open (LOG, ">>$dir/$condor_log") || die "Unable to write to local log file $dir/$condor_log";
 
-if($len==4) {
+if($len==5) {
     $executable = "$ENV{BOSSDIR}/bin/jobExecutor";
     $jid = $ARGV[0];
     $logfile = $ARGV[1];
     $host = $ARGV[2];
     $topwdir = $ARGV[3];
+    $copycomm = $ARGV[4];
 
     # open a temporary file
     $tmpfile = `mktemp condor_XXXXXX` || die "error";
@@ -26,7 +27,7 @@ if($len==4) {
     open (CMD, ">$tmpfile") || die "error";
     # Executable submit to Condor
     print CMD ("Executable  = $executable\n");
-    print CMD ("Arguments   = $jid $dir $topwdir\n");
+    print CMD ("Arguments   = $jid $dir $topwdir $copycomm\n");
     # Type of Universe (i.e. Standard, Vanilla, PVM, MPI, Globus)
     print CMD ("Universe    = vanilla\n");
     # input,output,error files passed to executable
@@ -35,6 +36,11 @@ if($len==4) {
     print CMD ("error       = $logfile\n");
     # Condor log file
     print CMD ("log         = $dir/$condor_log\n");
+    # Transfer files
+    print CMD ("should_transfer_files = YES\n");
+    print CMD ("when_to_transfer_output = ON_EXIT\n");
+    print CMD ("transfer_input_files = BossArchive_$jid.tgz\n");
+    print CMD ("transfer_output_files = BossOutArchive_$jid.tgz\n");
     # A string to help finding boss jobs in condor
     print CMD ("+BossJob = $jid\n");
     $domain = ` dnsdomainname`;

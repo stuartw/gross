@@ -9,7 +9,7 @@
 
 #include "BossUpdateElement.h"
 #include <iostream>
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 
 using namespace std;
 
@@ -97,8 +97,7 @@ BossUpdateElement& BossUpdateElement::operator=(const string buffer) {
 }
 
 string BossUpdateElement::str() const {
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-  string strid = sys->convert2string(jobid_);
+  string strid = OSUtils::convert2string(jobid_);
   return strid+BossUpdateElement::separator+
     table_+BossUpdateElement::separator+
     varname_+BossUpdateElement::separator+

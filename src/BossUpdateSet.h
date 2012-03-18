@@ -15,7 +15,7 @@
 #include <iostream>
 #include <fstream>
 #include "BossUpdateElement.h"
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 
 class BossUpdateSet { 
 
@@ -86,8 +86,7 @@ public:
 
   int readUpdateSet(std::string file) {
     int return_val = 0;
-    BossOperatingSystem* sys=BossOperatingSystem::instance();
-    if ( sys->fileExist(file) ) {
+    if ( OSUtils::fileExist(file) ) {
       std::ifstream us(file.c_str());
       if ( us ) {
 	return_val = readUpdateSet(us);
@@ -104,7 +103,6 @@ public:
 
   int readFromFilterFile(int jobid, std::string table, std::istream& is) {
     int return_val = 0;
-    BossOperatingSystem* sys=BossOperatingSystem::instance();
     if (is) {
       while(!is.eof()) {
 	std::string buffer;
@@ -115,11 +113,11 @@ public:
 	}
 	if ( ch == EOF ) break; // exit if OEF
 	getline(is,buffer,'=');
-	sys->trim(buffer);
+	OSUtils::trim(buffer);
 	std::string ident = buffer;
 	if ( buffer == "" ) continue;
 	getline(is,buffer,'\n');
-	sys->trim(buffer);
+	OSUtils::trim(buffer);
 	std::string value = buffer;
 	if ( buffer == "" ) continue;
 	add(BossUpdateElement(jobid,table,ident,buffer));
@@ -133,8 +131,7 @@ public:
 
   int readFromFilterFile(int jobid, std::string table, std::string file) {
     int return_val = 0;
-    BossOperatingSystem* sys=BossOperatingSystem::instance();
-    if ( sys->fileExist(file) ) {
+    if ( OSUtils::fileExist(file) ) {
       std::ifstream us(file.c_str());
       if ( us ) {
 	return_val = readFromFilterFile(jobid,table,us);

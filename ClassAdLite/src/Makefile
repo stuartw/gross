@@ -16,7 +16,7 @@ INCLUDES += -I$(INCLUDEDIR)
 CXX = c++ 
 
 # define compilation flags to
-CXXFLAGS = -Wall $(INCLUDES) -Os
+CXXFLAGS = -Wall $(INCLUDES)
 
 #define the program to use to make archive library (c++ does it)
 MKARLIB = $(AR) r 

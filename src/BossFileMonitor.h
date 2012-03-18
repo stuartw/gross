@@ -13,7 +13,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 
 class BossFileMonitor { 
 
@@ -68,8 +68,7 @@ private:
 
   int open() {
     int return_val = 0;
-    BossOperatingSystem* sys=BossOperatingSystem::instance();
-    if ( sys->fileExist(fname_) ) {
+    if ( OSUtils::fileExist(fname_) ) {
       str_ = new std::ifstream(fname_.c_str());
       if ( str_ ) {
 	if ( !(*str_) ) {

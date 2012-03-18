@@ -125,6 +125,26 @@ int LocalDb::tableDelete(string myTable, string mySelection) const {
 		       " rows from table " << myTable << " with selection " << mySelection <<endl;
   return EXIT_SUCCESS;
 }
+int LocalDb::tableCreate(string myTable, vector<string> myFields) const {
+  ostringstream query;
+  ostringstream values;
+  for (vector<string>::const_iterator i=myFields.begin(); i!=myFields.end(); i++) {
+    values << (*i);
+    if (i<myFields.end()-1) values << ", ";
+  }
+  query << "CREATE TABLE IF NOT EXISTS " << myTable << " (" << values.str() << ")";
+  if(Log::level()>2) cout << "LocalDb::tableCreate() SQL query is " << query.str() <<endl;
+  if(mysql_query(LocalDb::instance()->connection(), (query.str()).c_str())) {
+    cerr << "LocalDb::tableCreate(): Error: Creating table "
+         << myTable << " with values " << values.str() << " "
+	 << mysql_error(LocalDb::instance()->connection()) << endl;
+    return EXIT_FAILURE;
+  }
+  if(Log::level()>2) cout << "LocalDb::tableCreate(): Created "<<
+	                     mysql_affected_rows(LocalDb::instance()->connection()) <<
+			     " table " << myTable << " with values " << values.str() <<endl;
+  return EXIT_SUCCESS;
+}
 int LocalDb::maxCol(string myTable,string myCol) const {
   ostringstream query;
   query << "SELECT MAX(" << myCol << ") FROM " << myTable;

@@ -2,7 +2,7 @@
 #define DBSPEC_H
 #include "Log.hh"
 
-#include "BossClassAd.h"
+#include "CladLookup.hh"
 
 //! Database connection parameter specification class
 /*! This is the specification object for a generic database connection.
@@ -47,7 +47,8 @@ private:
     a private data member for future retrieval by the getter member functions.
    */
   void init();
-  BossClassAd::BossClassAd* clad_; ///< The BossClassAd that is created from JDL
+  //BossClassAd::BossClassAd* clad_; ///< The BossClassAd that is created from JDL
+  CladLookup* clad_; 
   string hostname_; 
   string username_; 
   string password_; 

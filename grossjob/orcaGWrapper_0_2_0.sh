@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -x
+set -x
 
 #Functions for producing BOSS viewable monitoring info
 printERROR() {
@@ -43,6 +43,7 @@ printCHECKPOINT "Reading steering file"
 extvble=`cat ${STEERFILE} | awk '{print $1}' | uniq`
 for vble in ${extvble}; do
   comm=`grep ${vble} ${STEERFILE} | awk '{print $2}'`
+  #comm=`grep ${vble} ${STEERFILE} | awk -F"${vble} " '{print $2}'`
   export $vble="$comm"
   echo "Setting variable from external steering file:" ${vble} ${comm[*]}
 done
@@ -204,6 +205,19 @@ echo "TextColor=False" >> .orcarc
 #redo scram runtime
 eval `scram runtime -sh`
 
+#POOL cat
+echo "================== POOL CAT ================"
+cat ${workDir}/${XMLFragFile}
+echo "================== POOL CAT ================"
+echo 
+echo
+#ls
+echo "==================    ls   ================="
+ls -alh
+echo "==================    ls  ================="
+echo
+echo
+
 #Run ORCA executable
 printCHECKPOINT "Running user executable"
 
@@ -219,35 +233,35 @@ if [ ${missingLibs} -ne 0 ]; then
   ldd $userExecPath
 fi
 
-${userExec} ## Run Executable
+${userExec} ${Arguments}         ## Run Executable
 orcaStatus=$?
 
 #copy RemoteDataOutputFile's to local SE and return LFN and GUID
-printCHECKPOINT "Copying output files to local SE"
-filelist="$RemoteDataOutputFile"
-for filename in $filelist; do
-  LFN=${filename}${Suffix}
-  if [ -a ${filename} ]; then
-    exists=`edg-rm --vo $VO lr lfn:${LFN} | grep -c "Lfn does not exist"`
-    if [ $exists -ne 0 ]; then
-      GUID=`edg-replica-manager --vo $VO cr file://${workDir}/$filename --logical-file-name lfn:${LFN}`
-      if [ $? -eq 0 ]; then
-        printINFO "Copied $filename with LFN $filename$Suffix to GUID $GUID"
-      else
-        printERROR "Unable to copy file $filename to local SE"
-        echo $GUID
-      fi
-    else
-      printERROR "LFN ${LFN} already exists in catalogue"
-    fi
-  else
-    printERROR "RemoteDataOutputFile $filename not found"
-  fi
-done
+#printCHECKPOINT "Copying output files to local SE"
+#filelist="${RemoteDataOutputFile}"
+#for filename in ${filelist}; do
+#  LFN=${filename}${Suffix}
+#  if [ -a ${filename} ]; then
+#   exists=`edg-rm --vo $VO lr lfn:${LFN} | grep -c "Lfn does not exist"`
+#    if [ $exists -ne 0 ]; then
+#      GUID=`edg-replica-manager --vo $VO cr file://${workDir}/$filename --logical-file-name lfn:${LFN}`
+#      if [ $? -eq 0 ]; then
+#        printINFO "Copied $filename with LFN $filename$Suffix to GUID $GUID"
+#      else
+#        printERROR "Unable to copy file $filename to local SE"
+#        echo $GUID
+#      fi
+#    else
+#      printERROR "LFN ${LFN} already exists in catalogue"
+#    fi
+#  else
+#    printERROR "RemoteDataOutputFile $filename not found"
+#  fi
+#done
 
 #copy other output files back to start directory
 printCHECKPOINT "Copying output files"
-data="${DataOutputFile} ${OutputSandboxFile}"
+data="${DataOutputFile} ${OutputSandboxFile} ${RemoteDataOutputFile}"
 for filename in ${data}; do
    if [ -a ${filename} ]; then
      printINFO "Copying ${filename} to output directory"
@@ -262,5 +276,5 @@ printINFO "Deleting working area..."
 cd ${STARTDIR}
 rm -rf ${STARTDIR}/${orcaVers}
 
-printCHECKPOINT "Finished jod at `date` with exit status $orcaStatus"
+printCHECKPOINT "Finished job at `date` with exit status $orcaStatus"
 exit $orcaStatus

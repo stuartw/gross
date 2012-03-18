@@ -46,6 +46,10 @@ int OrcaGWrapper::steer(){
   }
   osbuff << "userExec "<<fF.name()<<endl;
   
+  //executable arguments
+  const string sArg = userSpec_->read("Arguments");
+  if (!sArg.empty()) osbuff << "Arguments " << sArg << endl;
+  
   //Owner and Dataset
   const string sOwner = userSpec_->read("Owner");
   const string sDataset = userSpec_->read("Dataset");

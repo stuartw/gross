@@ -13,11 +13,11 @@
 #include <string>
 #include <fstream>
 
-#include "BossProcess.h"
-#include "BossOperatingSystem.h"
+#include "Process.h"
+#include "OperatingSystem.h"
 #include "BossUpdateElement.h"
 
-class BossLabellerProcess : public BossProcess {
+class BossLabellerProcess : public OSUtils::Process {
 private:
   int id_;
   std::string type_;
@@ -25,12 +25,11 @@ private:
   std::string outfile_;
 public:
   BossLabellerProcess(int id, std::string type, std::string in, std::string out) : 
-    BossProcess(), id_(id), type_(type), inpipe_(in), outfile_(out) {}
+    OSUtils::Process(), id_(id), type_(type), inpipe_(in), outfile_(out) {}
 
   int start() {
-    BossOperatingSystem* sys=BossOperatingSystem::instance();
     // Check input pipe
-    if ( ! sys->fileExist(inpipe_) ) {
+    if ( ! OSUtils::fileExist(inpipe_) ) {
       std::cerr << "BossLabeller: Input pipe " << inpipe_ 
 	   << " does not exist. Abort." << std::endl;
       return -1;
@@ -54,14 +53,14 @@ public:
       return -3;
     }
     // Check output file
-    if ( ! sys->fileExist(outfile_) ) {
+    if ( ! OSUtils::fileExist(outfile_) ) {
       std::cerr << "BossLabeller: output journal file " << outfile_ 
 	   << " does not exist. Abort." << std::endl;
       return -2;
     }
 #ifdef LOGL2
     std::cout << "Executing: labeller process " << std::endl;
-    std::cout << "     PID : " << sys->getPid() << std::endl;
+    std::cout << "     PID : " << OSUtils::getPid() << std::endl;
     std::cout << "      In : " << inpipe_ << std::endl;
     std::cout << "      Out: " << outfile_ << std::endl;
 #endif
@@ -74,15 +73,15 @@ public:
       }
       if ( ch == EOF ) break; // exit if EOF
       getline(inp,buffer,'=');
-      sys->trim(buffer);
+      OSUtils::trim(buffer);
       std::string ident = buffer;
       if ( buffer == "" ) continue;
       getline(inp,buffer,'\n');
-      sys->trim(buffer);
+      OSUtils::trim(buffer);
       std::string value = buffer;
       if ( buffer == "" ) continue;
       BossUpdateElement ue(id_,type_,ident,value);
-      sys->append(outfile_,ue.str());
+      OSUtils::append(outfile_,ue.str());
       // DEBUG
       // std::cerr << "BossLabellerProcess writing " << ue << std::endl;
       // END DEBUG

@@ -20,7 +20,7 @@ class BossDatabase;
 class BossDelete : public BossCommand {
 private:
   int checkRunning(BossJob*, BossDatabase*);
-  int prompt();
+  int prompt(int);
 public:
   BossDelete();
   virtual ~BossDelete();

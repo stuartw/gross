@@ -12,13 +12,15 @@
 #include "BossJob.h"
 #include "BossDatabase.h"
 #include "BossScheduler.h"
+#include "BossJobIDRange.h"
+#include "OperatingSystem.h"
 #include <unistd.h>
 #include <cstdio>
 
 using namespace std;
 
 BossQuery::BossQuery() : BossCommand() {
-  opt_["-jobid"] = ""; 
+  opt_["-jobid"] = std::string("1:")+OSUtils::convert2string(BossJobIDRange::maxJobID()); 
   opt_["-all"] = "FALSE"; 
   opt_["-scheduled"] = "TRUE"; 
   opt_["-running"] = "FALSE"; 
@@ -27,6 +29,7 @@ BossQuery::BossQuery() : BossCommand() {
   opt_["-specific"] = "FALSE"; 
   opt_["-full"] = "FALSE"; 
   opt_["-statusOnly"] = "FALSE"; 
+  opt_["-avoidCheck"] = "FALSE"; 
 }
 
 BossQuery::~BossQuery() {}
@@ -35,7 +38,7 @@ void BossQuery::printUsage() const
 {
   cout << "Usage:" << endl
        << "boss query " << endl;
-  cout << "           -jobid <job id> " << endl
+  cout << "           -jobid [<job id> | <first job id>:<last job id>]" << endl
        << "           -all " << endl
        << "           -scheduled " << endl
        << "           -running " << endl
@@ -44,6 +47,7 @@ void BossQuery::printUsage() const
        << "           -specific " << endl
        << "           -full " << endl
        << "           -statusOnly (overrides -specific and -full)" << endl
+       << "           -avoidCheck (guess status from DB)" << endl
        << endl;
 }
 
@@ -55,27 +59,30 @@ int BossQuery::execute() {
   //  for (Options_const_iterator i=opt_.begin();i!=opt_.end();i++)
   //  cout << i->first << "=" << i->second << endl;
 
+  BossJobIDRange idr(opt_["-jobid"]);
   string projection_opt = "normal";
   if ( opt_["-specific"] == "TRUE" )
     projection_opt = "specific";
   if ( opt_["-statusOnly"] == "TRUE" )
     projection_opt = "status";
+  bool noSchedQ = opt_["-avoidCheck"] == "TRUE";
 
   // specific option is allowed with -type option only 
-  if ( projection_opt == "specific" && opt_["-jobid"] == "" && opt_["-type"] == "" ) {
-    cout << "Cannot use -specific without -type" << endl;
+  if ( projection_opt == "specific" && idr.size()>1 && opt_["-type"] == "" ) {
+    cout << "Cannot use -specific without -type for multiple jobs" << endl;
     return -1;
   }
 
-  if ( opt_["-jobid"] != "" ) {
+  if ( idr.size()==1 ) {
+    int id = idr.ifirst();
     if ( opt_["-type"] != "" ) {
-      cout << "Cannot use -jobid and -type together" << endl
+      cout << "Cannot use -type when requesting a single job ID" << endl
 	   << "Ignoring -type option" << endl;
     }
     // check if the job, scheduler and jobtype exists
-    BossJob* jobH = db.findJob(atoi(opt_["-jobid"].c_str()));
+    BossJob* jobH = db.findJob(id);
     if ( !jobH ) {
-      cout << "JobID " <<  opt_["-jobid"] << " not found" << endl;
+      cout << "JobID " << id << " not found" << endl;
       return -3;
     }
     if ( opt_["-full"] == "TRUE" && opt_["-statusOnly"] != "TRUE") {
@@ -85,7 +92,7 @@ int BossQuery::execute() {
       return 0;
     } else {
       printJobHead(jobH,projection_opt);
-      printJob(jobH,projection_opt,getState(jobH,sched),&db);
+      printJob(jobH,projection_opt,getState(jobH,sched,noSchedQ),&db);
       return 0;
     }
   } else {
@@ -103,8 +110,7 @@ int BossQuery::execute() {
     }
 
     // find the jobs matching
-    vector<BossJob*> jobs = db.jobs(filter_option,opt_["-type"],opt_["-user"],projection_opt);
-
+    vector<BossJob*> jobs = db.jobs(idr,filter_option,opt_["-type"],opt_["-user"],projection_opt);
     int matching_jobs = 0;
     bool printHead = 1;
     for (vector<BossJob*>::const_iterator i=jobs.begin(); i!=jobs.end();i++) { 
@@ -112,7 +118,7 @@ int BossQuery::execute() {
 	printJobHead((*i),projection_opt);
 	printHead = 0;
       }
-      string state = getState(*i,sched);
+      string state = getState(*i,sched,noSchedQ);
       if ( filter_option != 'a' ) {
 	if ( state != "A") { 
 	  printJob((*i),projection_opt,state,&db);
@@ -179,6 +185,6 @@ int BossQuery::printJob(BossJob* jobH, string opt, string state,
 }
 
 // return the state of the job
-string BossQuery::getState(BossJob* jobH, BossScheduler& sched) {
-  return sched.status(jobH);
+string BossQuery::getState(BossJob* jobH, BossScheduler& sched, bool flag) {
+  return sched.status(jobH,flag);
 }

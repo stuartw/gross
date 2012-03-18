@@ -2,7 +2,7 @@
 #define CLADLOOKUP_H
 #include "Log.hh"
 
-#include "BossClassAd.h"
+#include "ClassAdLite.h"
 #include <map>
 using std::map;
 
@@ -18,8 +18,6 @@ using std::map;
   \li any parameter can be looked up - a simple key string is all a client requires.
   
   \todo Obsolete DbSpec class by using this more general class instead
-  \todo Use a ClassAd object rather than BossClassAd object to eliminate the single direct dependency 
-  on the BOSS library from GROSS.
 */
 class CladLookup {
 public:
@@ -97,7 +95,8 @@ public:
   */
   friend ostream& operator<<(ostream&, const CladLookup&);
 private:
-  BossClassAd::BossClassAd* clad_; ///< The (Boss)ClassAd to be looked up.
+  //BossClassAd::BossClassAd* clad_; ///< The (Boss)ClassAd to be looked up.
+  CAL::ClassAdLite* clad_;
   void string2vec(const string& cladline, vector<string>& strings) const; ///< Converts a single string list into a vector of separated strings
 
   //General map for all types

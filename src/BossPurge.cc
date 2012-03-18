@@ -13,12 +13,15 @@
 #include "BossJob.h"
 #include "BossDatabase.h"
 #include "BossScheduler.h"
+#include "BossJobIDRange.h"
+#include "OperatingSystem.h"
 
 using namespace std;
  
 BossPurge::BossPurge() : BossCommand() {
   opt_["-before"] = ""; 
-  opt_["-noprompt"] = "FALSE"; 
+  opt_["-jobid"] = std::string("1:")+OSUtils::convert2string(BossJobIDRange::maxJobID()); 
+  opt_["-noprompt"] = "FALSE";
 }
 
 BossPurge::~BossPurge() {}
@@ -28,6 +31,7 @@ void BossPurge::printUsage() const
   cout << "Usage:" << endl
        << "boss purge " << endl;
   cout << "           -before <date mm/dd/yyyy> " << endl
+       << "           -jobid [<first job id>:<last job id>]" << endl
        << "           -noprompt " << endl
        << endl;
 }
@@ -37,6 +41,8 @@ int BossPurge::execute() {
   //    cout << i->first << "=" << i->second << endl;
   
   BossDatabase db("super");  
+
+  BossJobIDRange idr(opt_["-jobid"]);
 
   int mm,dd,yy;
   string date = opt_["-before"];
@@ -49,7 +55,7 @@ int BossPurge::execute() {
   // cout << mm << " " << dd << " " << yy << endl;
   // END DEBUG
 
-  vector<BossJob*> jobs = db.jobs('a',string(""));
+  vector<BossJob*> jobs = db.jobs(idr,'a',string(""));
   
   cout << "Check " << jobs.size() << " jobs" << endl;
 

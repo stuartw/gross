@@ -1,0 +1,5 @@
+#!/bin/sh
+
+boss registerScheduler -name lcg_Clarens -submit dg_submit_clarens.pl -query dg_query.pl -kill dg_kill.pl -default -topwdir NONE
+
+

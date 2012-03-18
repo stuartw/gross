@@ -71,7 +71,7 @@ int Kill::execute() {
     if (boss.killTask()) cerr<<"Error killing Task " << myTaskId<< " from BOSS "<<endl;
   }
   
-      if(Log::level()>0) cout << "Kill successful for Task " << myTaskId<< endl;
+      cout << "Kill successful for Task " << myTaskId<< endl;
 
   return EXIT_SUCCESS;
 }

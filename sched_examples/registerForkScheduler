@@ -1,3 +1,3 @@
 #!/bin/sh
 
-boss registerScheduler -name fork -submit fork_submit.pl -query fork_query.pl -kill fork_kill.pl -default -topwdir . 
+boss registerScheduler -name fork -submit fork_submit.pl -query fork_query.pl -kill fork_kill.pl -copy cp -default -topwdir . 

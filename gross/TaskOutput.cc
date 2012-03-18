@@ -117,6 +117,8 @@ string TaskOutput::getGridSbox(Job* pJob, string oDir /* ="./" */) const {
   //Save result to Db
   saveSboxDir(pJob, sboxDir);
   return sboxDir;
+  //check for correct saving of output files to grid 
+  //checkOutputLFNs(pJob, sboxDir);
 }
 string TaskOutput::getDbSbox(Job* pJob) const{
   if(!task_||!pJob) { 

@@ -6,11 +6,13 @@
   args = "40";
   jobtype = "test,testErr";
   log = "test.log";
+  infiles = "test.pl,in";
+  outfiles = "out,err";
 #  host = "pccms10";
 #  AnotherKey = "AnotherValue";
  BossAttr =
   [
-    test:counter=9999;
-    testErr:counter=9998;
+    test.counter=9999;
+    testErr.ecounter=9998;
   ];
 

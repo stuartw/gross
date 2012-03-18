@@ -91,6 +91,14 @@ public:
     \retval 0 for failure
     \retval >0 is the max value found. Note it is converted to an integer, thus is only suited to integer values.
    */
+  int tableCreate(string aTable, vector<string> aFields) const;
+  /*!
+   \brief Creates a table in the database consistent with list of strings 'field_name TYPE(SIZE)' in the vector.
+   \param aTable is the table name to be created.
+   \param aFields is the list of fields names/types.
+   \retval 0 for success
+   \retval 1 for failure
+ */
   int LocalDb::maxCol(string aTable,string aCol) const;
   /*!
     \brief Converts a string containing characters that MYSQL requires escaping into a legal SQL string

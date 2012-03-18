@@ -10,7 +10,7 @@
 #include <iostream>
 #include "BossRegisterJob.h"
 #include "BossDatabase.h"
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 #include "BossJob.h"
 #include <fstream>
 
@@ -44,13 +44,12 @@ int BossRegisterJob::execute() {
   //  for (Options_const_iterator i=opt_.begin();i!=opt_.end();i++)
   //    cout << i->first << "=" << i->second << endl;
 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
   BossDatabase db("super");
 
   // check if the job-type exist
   if ( !(db.existJobType(opt_["-name"])) ) {
     // check if the files exist
-    if ( !sys->fileExist(opt_["-schema"]) ) {
+    if ( !OSUtils::fileExist(opt_["-schema"]) ) {
       cout << "Schema file not exist" << endl;
       return -5;
     }
@@ -65,7 +64,7 @@ int BossRegisterJob::execute() {
     if ( answer == "n" )
       return -4;
     if ( opt_["-schema"] != "NULL" ) {
-      if ( !sys->fileExist(opt_["-schema"]) ) {
+      if ( !OSUtils::fileExist(opt_["-schema"]) ) {
 	cout << "Schema file not exist" << endl;
 	return -5;
       }
@@ -82,19 +81,19 @@ int BossRegisterJob::execute() {
   }
   if ( opt_["-pre"]!= "NULL" && 
        opt_["-pre"]!= "SKIP" && 
-       !sys->fileExist(opt_["-pre"]) ) {
+       !OSUtils::fileExist(opt_["-pre"]) ) {
     cout << "Pre-process script not exist" << endl;
     return -6;
   }
   if ( opt_["-post"]!= "NULL" && 
        opt_["-post"]!= "SKIP" && 
-       !sys->fileExist(opt_["-post"]) ) {
+       !OSUtils::fileExist(opt_["-post"]) ) {
     cout << "Post-process script not exist" << endl;
     return -7;
   }
   if ( opt_["-runtime"]!= "NULL" && 
        opt_["-runtime"]!= "SKIP" && 
-       !sys->fileExist(opt_["-runtime"]) ) {
+       !OSUtils::fileExist(opt_["-runtime"]) ) {
     cout << "Runtime-process script not exist" << endl;
     return -8;
   }

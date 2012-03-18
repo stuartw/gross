@@ -17,7 +17,8 @@
 using namespace std;
 
 BossKill::BossKill() : BossCommand() {
-  opt_["-jobid"] = "NULL"; 
+  opt_["-jobid"] = "0:-1";
+  opt_["-force"] = "FALSE";
 }
 
 BossKill::~BossKill() {}
@@ -26,7 +27,8 @@ void BossKill::printUsage() const
 {
   cout << "Usage:" << endl
        << "boss kill " << endl;
-  cout << "          -jobid <job ij> " << endl
+  cout << "           -jobid [<job id> | <first job id>:<last job id>]" << endl
+       << "           -force (set status killed regardless the status)" << endl
        << endl;
 }
 
@@ -35,30 +37,35 @@ int BossKill::execute() {
   //    cout << i->first << "=" << i->second << endl;
 
   BossDatabase db("super");
-  BossJob* jobH;
 
-  if ( opt_["-jobid"] == "NULL" ) { 
-    //printUsage();
+  BossJobIDRange idr(opt_["-jobid"]);
+
+  bool force = opt_["-force"] == "TRUE";
+
+  if ( idr.size()<1 ) {
+    std::cerr << "please specify a valid ID range" << std::endl;
     return -1;
   }
-  // check if the job, scheduler and jobtype exists
-  jobH = db.findJob(atoi(opt_["-jobid"].c_str()));
-  if ( !jobH ) {
-    cout << "JobID " <<  opt_["-jobid"] << " not found" << endl;
-    return -3;
-  }
-  string schedname = jobH->getSchedType();
-  if ( schedname != "" && !db.existSchType(schedname) ) {  
-    cout << "Job " << jobH->getId() << " was submitted from scheduler " 
-	 << jobH->getSchedType() << " now not supported !" << endl;
-    return -4;
+
+  for (int id=idr.ifirst(); id<=idr.ilast(); ++id) {
+    // check if the job, scheduler and jobtype exists
+    BossJob* jobH = db.findJob(id);
+    if ( !jobH )
+      continue;
+
+    string schedname = jobH->getSchedType();
+    if ( schedname != "" && !db.existSchType(schedname) ) {  
+      cout << "Job " << jobH->getId() << " was submitted from scheduler " 
+	   << jobH->getSchedType() << " now not supported !" << endl;
+      continue;
+    }
+    
+    BossScheduler sched(&db);
+    cout << "Return code of kill " << sched.kill(jobH,force) << endl;
+    
+    // delete the job handle
+    delete jobH;
   }
   
-  BossScheduler sched(&db);
-  cout << "Return code of kill " << sched.kill(jobH) << endl;
-
-  // delete the job handle
-  delete jobH;
-
   return 0;
 }

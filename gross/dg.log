@@ -1,0 +1,22 @@
+
+====>> Kill request for job https://lxn1188.cern.ch:9000/H4J_deCB1TrAAtDarvkU4Q
+Killing with command edg-job-cancel -noint https://lxn1188.cern.ch:9000/H4J_deCB1TrAAtDarvkU4Q |
+*** Start dump of kill request:
+
+                           *** Log file created ***
+Possible Errors and Debug messages have been printed in the following file:
+/tmp/edg-job-cancel_2004_3098_1098117421.log
+
+*** End dump of kill request:
+Result of kill request is: error
+
+====>> Kill request for job https://lxn1188.cern.ch:9000/H4J_deCB1TrAAtDarvkU4Q
+Killing with command edg-job-cancel -noint https://lxn1188.cern.ch:9000/H4J_deCB1TrAAtDarvkU4Q |
+*** Start dump of kill request:
+
+                           *** Log file created ***
+Possible Errors and Debug messages have been printed in the following file:
+/tmp/edg-job-cancel_2004_3105_1098117427.log
+
+*** End dump of kill request:
+Result of kill request is: error

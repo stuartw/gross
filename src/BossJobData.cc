@@ -12,7 +12,7 @@
 
 #include <sstream>
 
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 
 using namespace std;
 
@@ -51,7 +51,6 @@ void BossJobData::add(const string table, istream& schema)  {
 
 vector< pair<string,string> > BossJobData::splitSchema(istream& schema) const {
   vector< pair<string,string> > ret_val;
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
   while ( !schema.eof() ) {
     string buffer;
     char ch = schema.peek();
@@ -61,11 +60,11 @@ vector< pair<string,string> > BossJobData::splitSchema(istream& schema) const {
     }
     if ( ch == EOF ) break; // exit if OEF
     getline(schema,buffer,':');
-    sys->trim(buffer);
+    OSUtils::trim(buffer);
     string ident = buffer;
     if ( buffer == "" ) continue;
     getline(schema,buffer,',');
-    sys->trim(buffer);
+    OSUtils::trim(buffer);
     string type = buffer;
     if ( buffer == "" ) continue;
     pair<string,string> schElem;
@@ -87,6 +86,12 @@ bool BossJobData::existColumn(string table, string name) const {
   schema_const_iterator psch = schema_.find(table);
   if(psch != schema_.end() ) {
     ret_val = existName(psch->second,name);
+  } else {
+    cerr << "Table " << table << " not found. Available tables are: ";
+    for (psch = schema_.begin(); psch != schema_.end(); ++psch) {
+      cerr << psch->first << " ";
+    }
+    cerr << endl;
   }
   return ret_val;
 }
@@ -101,6 +106,8 @@ bool BossJobData::existName(string schema, string name) const {
       break;
     }
   }
+  if ( ! ret_val)
+    cerr << name << " not found in " << schema << endl;
   return ret_val;
 }
 

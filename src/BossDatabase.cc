@@ -14,14 +14,16 @@
 #include <iostream>
 #include <sstream>
 
-#include "BossOperatingSystem.h"
+#include "OperatingSystem.h"
 #include "BossJob.h"
 #include "BossUpdateElement.h"
+
+#include "SirDBBackend.h"
 
 using namespace std;
 
 BossDatabase::BossDatabase(string mode) : 
-  mode_(mode), last_err_time_(0), current_connection_(0) {
+  mode_(mode), last_err_time_(0) {
   
   BossConfiguration* config=BossConfiguration::instance();
   hostname_    = config->boss_db_host();
@@ -36,137 +38,12 @@ BossDatabase::BossDatabase(string mode) :
   client_flag_ = config->boss_db_client_flag();
   table_type_  = config->boss_table_type();
   
-  connect();
+  backend = SirDBBackend::create(config->boss_config_file(),mode);
 }
 
 
 BossDatabase::~BossDatabase() {
-  disconnect();
-}
-
-int BossDatabase::connect() {
-
-  // avoid multiple connection
-  if ( current_connection_ == 0 ) {
-    current_connection_ = mysql_init(NULL);
-    if ( !current_connection_ ) {
-      cerr << "Out of memory" << endl;
-      exit(800);
-    } 
-    char* user;
-    char* pw;
-    // DEBUG
-    // cout << "BossDatabase is connecting as " << mode_ << " user" << endl;
-    // END DEBUG
-    if ( mode_ == "super" ) { 
-      user = super_user_;
-      pw   = super_passwd_;
-    } else {
-      user = guest_user_;
-      pw   = guest_passwd_;
-    }
-    if ( !mysql_real_connect(current_connection_, hostname_, user, pw, db_,
-			     port_, unix_socket_, client_flag_) ) {
-      fatal("connect",800);
-      disconnect();
-    }
-  }
-  return 1;
-} 
-
-int BossDatabase::disconnect() {
-  // DEBUG
-  // cout << "BossDatabase is disconnecting " << mode_ << " user" << endl;
-  // END DEBUG
-  if(current_connection_)mysql_close(current_connection_);
-  current_connection_=0;
-  return 0;
-}
-
-// 0         succesfull
-// -1        error in query
-int BossDatabase::tryQuery(MYSQL* conn, string q) {
-  int ret = 0;
-  int retry;
-  do {
-    retry = 0;
-    if( mysql_query(current_connection_, q.c_str() ) ) {
-      unsigned int errornumber = mysql_errno(current_connection_);
-      switch ( errornumber ) {
-      case 2013: {
-	cout << "Error in Boss/MySQL interface: " 
-	     << mysql_error(current_connection_)
-	     << " err_no " << mysql_errno(current_connection_) 
-	     <<  endl;
-	BossOperatingSystem* sys=BossOperatingSystem::instance();
-	if ( sys->getTime()-last_err_time_ > 600 ) {
-	  //disconnect();
-	  //connect();
-	  retry = 1;
-	  cout << "Try to make query again " << endl;
-	  last_err_time_ = sys->getTime();
-	} else {
-	  cout << "Consecutive errors. Abort. " << endl;
-	  ret = -1;
-	}
-	break;
-      }
-      default:
-	ret = -1;
-      }
-    }
-  } while (retry);
-  return ret;
-}
-
-void BossDatabase::fatal(string routine, int exit_code) {
-
-  cout << "Fatal error in Boss/MySQL interface: " << routine << " --> " 
-       << mysql_error(current_connection_)
-       << " err_no " << mysql_errno(current_connection_) 
-       << "\nplease check your MySQL server or contact the authors" <<  endl;
-  exit(exit_code);  
-}
-
-MYSQL_RES* BossDatabase::getResults(string q) {
-  MYSQL_RES* return_val = 0;
-  //    cout << q << endl;
-  if ( tryQuery(current_connection_, q) ) {
-    fatal("getResults (1) ",800);
-    return return_val;
-  }
-  return_val = mysql_store_result(current_connection_);
-  if ( !return_val ) {
-    fatal("getResults (2) ",800);
-    return return_val;
-  }
-  return return_val;
-}
-
-// 0         succesfull
-// -1        error in query
-int BossDatabase::accept(string q) {
-  //  cout << q << endl;
-  if ( tryQuery(current_connection_, q) ) {
-    fatal("accept (1) ",800);
-    return -1;
-  }
-  return 0;
-}
-
-int BossDatabase::clearResults(MYSQL_RES* r) {
-  mysql_free_result(r);
-  return 0;
-}
-
-// >= 0       succesfull
-// -1         error
-int BossDatabase::affectedRows() {
-
-  if (current_connection_) 
-    return mysql_affected_rows(current_connection_);
-  else 
-    return -1;
+  delete backend;
 }
 
 // 1         the job exist
@@ -175,18 +52,9 @@ int BossDatabase::existJob(int id) {
 
   int return_val = 0;
   
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-
-  string query = string("SELECT ID FROM JOB WHERE ID =") + sys->convert2string(id);
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
-    return return_val;
-  }
-
-  if ( mysql_num_rows(current_results) > 0 ) 
+  string query = string("SELECT ID FROM JOB WHERE ID =") + OSUtils::convert2string(id);
+  if(backend->rowcount_query(query) > 0)
     return_val = 1;
-
-  clearResults(current_results);
 
   return return_val;
 }
@@ -198,15 +66,8 @@ int BossDatabase::existJobType(string job_type) {
   int return_val = 0;
 
   string query = "SELECT name FROM JOBTYPE WHERE NAME =\'" + job_type + "\'";
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
-    return return_val;
-  }
-
-  if ( mysql_num_rows(current_results) > 0 ) 
+  if(backend->rowcount_query(query) > 0)
     return_val = 1;
-
-  clearResults(current_results);
 
   return return_val;
 }
@@ -218,14 +79,8 @@ int BossDatabase::existSchType(string sch) {
   int return_val = 0;
 
   string query = "SELECT * FROM SCHEDULER WHERE NAME =\'" + sch + "\'";;
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
-    return return_val;
-  }
-  if ( mysql_num_rows(current_results) > 0 ) 
+  if(backend->rowcount_query(query) > 0)
     return_val = 1;
- 
-  clearResults(current_results);
 
   return return_val;
 }
@@ -237,21 +92,11 @@ string BossDatabase::getDefaultSch() {
   string sch = "NULL";
 
   string query = "SELECT name FROM SCHEDULER WHERE def =\'Y\'";
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
-    return sch;
-  }
-
-  if ( mysql_num_rows(current_results) != 1 ) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(results.nrows() != 1)
     cout << "DB inconsistency !! there is no default scheduler !!" << endl;
-    clearResults(current_results);
-    return sch;
-  } 
- 
-  MYSQL_ROW row = mysql_fetch_row(current_results);
-  sch = string(row[0]);
-
-  clearResults(current_results);
+  else
+    sch = string(results[0][0]);
 
   return sch;
 }
@@ -263,21 +108,11 @@ string BossDatabase::getWorkDir(string name) {
   string return_val = "";
 
   string query = "SELECT TOP_WORK_DIR FROM SCHEDULER WHERE NAME =\'" + name + "\'";;
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
-    return return_val;
-  }
-
-  if ( mysql_num_rows(current_results) != 1 ) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(results.nrows() != 1)
     cout << "DB inconsistency !! Top working dir not set for scheduler !!" << endl;
-    clearResults(current_results);
-    return return_val;
-  } 
- 
-  MYSQL_ROW row = mysql_fetch_row(current_results);
-  return_val = string(row[0]);
- 
-  clearResults(current_results);
+  else
+    return_val = string(results[0][0]);
 
   return return_val;
 
@@ -289,8 +124,6 @@ int BossDatabase::insertJob(BossJob* jobH) {
 
   // add a new job and return the unique job handle
   int return_val=0;
-
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
 
   string names = "";
   string values = "";
@@ -308,14 +141,11 @@ int BossDatabase::insertJob(BossJob* jobH) {
   }
   string query = "INSERT INTO JOB(" + names.substr(0,names.size()-1) +
                  ") VALUES ("       + values.substr(0,values.size()-1) + ")";
-  if (accept(query)!=0) {
+  int jobID = backend->insert_query(query);
+  if(jobID < 0)
     return return_val;
-  }
-
-  // get the unique id
-  int jobID = -1;
-  if ( mysql_affected_rows(current_connection_) >= 1 ) 
-    jobID = mysql_insert_id(current_connection_);
+  else if(jobID == 0)
+    jobID = -1;
 
   jobH->setId(jobID);
 
@@ -324,22 +154,23 @@ int BossDatabase::insertJob(BossJob* jobH) {
   for(vector<string>::const_iterator ti=types.begin(); ti<types.end(); ti++) {
     if ( *ti != "stdjob" ) {
       string names = "ID,JOBID";
-      string values = string("NULL,") + sys->convert2string(jobID);
-      BossJob::const_iterator i;
-      for (i=jobH->beginSpecific(); i!= jobH->endSpecific(); i++ ) {
-	string n = jobH->specificData(i).name();
-	if(jobH->existColumn((*ti),n)) {
-	  string v = jobH->specificData(i).value();
-	  string t = jobH->specificData(i).type();
-	  string delimiter = "\'";
-	  //      if (t == "int" || t == "INT" ) delimiter = "";
-	  names += "," + n;
-	  values += "," + delimiter + v + delimiter;
-	}
-      }
+      string values = string("NULL,") + OSUtils::convert2string(jobID);
+      // At the time of insertion these are empty comment out
+//       BossJob::const_iterator i;
+//       for (i=jobH->beginSpecific(); i!= jobH->endSpecific(); i++ ) {
+// 	string n = jobH->specificData(i).name();
+// 	if(jobH->existColumn((*ti),n)) {
+// 	  string v = jobH->specificData(i).value();
+// 	  string t = jobH->specificData(i).type();
+// 	  string delimiter = "\'";
+// 	  //      if (t == "int" || t == "INT" ) delimiter = "";
+// 	  names += "," + n;
+// 	  values += "," + delimiter + v + delimiter;
+// 	}
+//       }
       string query = "INSERT INTO "+(*ti)+"(" + names +
 	") VALUES ("       + values + ")";
-      if (accept(query)!=0) {
+      if(backend->query(query) != 0) {
 	return return_val;
       }
     }
@@ -354,16 +185,9 @@ int BossDatabase::deleteJob(int jobID) {
   
   int return_val = -1;
 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-
-  string query = string("DELETE FROM JOB WHERE ID = ") + sys->convert2string(jobID);
-  if (accept(query)!=0) {
-      return return_val;
-  }
-  
-  if ( affectedRows() <= 0 ) { // the job is not found 
+  string query = string("DELETE FROM JOB WHERE ID = ") + OSUtils::convert2string(jobID);
+  if(backend->rowcount_query(query) <= 0)
     return return_val;
-  } 
         
   return 0;
 } 
@@ -374,17 +198,10 @@ int BossDatabase::deleteSpecificJob(string type, int jobID) {
 
   int return_val = -1;
 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-
-  string query = string("DELETE FROM ") + type + " WHERE JOBID = " + sys->convert2string(jobID);
+  string query = string("DELETE FROM ") + type + " WHERE JOBID = " + OSUtils::convert2string(jobID);
  
-  if (accept(query)!=0) {
-      return return_val;
-  }
-
-  if ( affectedRows()  <= 0 ) { // the job is not found 
+  if(backend->rowcount_query(query) <= 0)
     return return_val;
-  } 
 
   return 0;
 }
@@ -395,35 +212,22 @@ int BossDatabase::getGeneralJobData(BossJob* jobH) {
 
   int return_val = -1;
 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-
   if (!jobH)return return_val;
   
   int id = jobH->getId();
   if (id <= 0) return return_val;
-  string strid = sys->convert2string(id);
+  string strid = OSUtils::convert2string(id);
   string query = string("SELECT * FROM JOB WHERE ID = ") + strid;
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results || results.nrows() == 0)
     return return_val;
-  }
-  
-  if ( mysql_num_rows(current_results) <= 0 ) { // the job is not found 
-    clearResults(current_results);
-    return return_val;
-  } 
-        
-  unsigned int num_fields = mysql_num_fields(current_results);
-  MYSQL_FIELD* fields = mysql_fetch_fields(current_results);
-  MYSQL_ROW row = mysql_fetch_row(current_results);
+
+  SirDBResultHeaders headers = results.headers();
+  SirDBResultRow row = results[0];
   jobH->setId(atoi(row[0]));
-  for (unsigned int i=1; i!= num_fields; i++) {
-    string n = fields[i].name;
-    string v = string(row[i]);
-    jobH->setData(BossUpdateElement(id,"JOB",fields[i].name,string(row[i])));
-  }
-  
-  clearResults(current_results);
+  for(unsigned int i = 1; i < results.nfields(); i++)
+    jobH->setData(BossUpdateElement(id, "JOB", headers[i], row[i]));
 
   return 0;
 
@@ -436,42 +240,29 @@ int BossDatabase::getSpecificJobData(BossJob* jobH) {
 
   int return_val = -1;
 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-
   if (!jobH)return return_val;
 
   int id = jobH->getId();
   if (id <= 0) return return_val;
-  string strid = sys->convert2string(id);
+  string strid = OSUtils::convert2string(id);
   vector<string> types = jobH->getJobTypes();
   for(vector<string>::const_iterator ti=types.begin(); ti<types.end(); ti++) {
     if ( *ti != "stdjob" ) {
       if ( existJobType(*ti) ) {
 	string query = string("SELECT * FROM "+(*ti)+" WHERE JOBID = ") + strid;
-	MYSQL_RES* current_results = getResults(query);
-	if (current_results==0) {
-	  return return_val;
-	}
-      
-	if ( mysql_num_rows(current_results) <= 0 ) {
-	  // the job is not found  
-	  clearResults(current_results);
-	  return return_val;
-	} 
-      
-	unsigned int num_fields = mysql_num_fields(current_results);
-	MYSQL_FIELD* fields = mysql_fetch_fields(current_results);
-	MYSQL_ROW row = mysql_fetch_row(current_results);
-	for (unsigned int i=0; i!= num_fields; i++) {
-	  string n = fields[i].name;
-	  string v = string(row[i]);
+        SirDBResultSet results = backend->fetch_query(query);
+        if(!results || results.nrows() == 0)
+          return return_val;
+
+        SirDBResultHeaders headers = results.headers();
+        SirDBResultRow row = results[0];
+        for(unsigned int i = 0; i < results.nfields(); i++) {
+          string n = headers[i];
+          string v = row[i];
 	  //      cout << "***" << n << " " << v << endl;
-	  if(n!="ID" && n != "JOBID") {
-	    jobH->setData(BossUpdateElement(id,*ti,fields[i].name,string(row[i])));
-	  }
-	}
-      
-	clearResults(current_results);
+	  if(n != "ID" && n != "JOBID")
+	    jobH->setData(BossUpdateElement(id ,*ti, n, v));
+        }
 
       }
     } else {
@@ -492,30 +283,19 @@ int BossDatabase::getSubmit(string name, string fname) {
   string blob = "";
 
   query = "SELECT SUBMIT_BIN FROM SCHEDULER WHERE NAME = \"" + name + "\""; 
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results || results.nrows() == 0)
     return -1;
-  }
-  
-  if ( mysql_num_rows(current_results) <= 0 ) { // the scheduler type is not found 
-    clearResults(current_results);
-    return -2;
-  } 
-  
-  MYSQL_ROW row = mysql_fetch_row(current_results);
-  blob = string(row[0]);
 
-  clearResults(current_results);
+  blob = results[0][0];
   if(blob == "NULL" || blob == "")
     return 1;
-
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
 
   ofstream f(fname.c_str());
   f << blob; 
   f.close();
   // change privileges
-  sys->fileChmod("744",fname);
+  OSUtils::fileChmod("744",fname);
   
   return 0;
 }
@@ -529,30 +309,19 @@ int BossDatabase::getKill(string name, string fname) {
   string blob = "";
 
   query = "SELECT KILL_BIN FROM SCHEDULER WHERE NAME = \"" + name + "\""; 
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results || results.nrows() == 0)
     return -1;
-  }
-  
-  if ( mysql_num_rows(current_results) <= 0 ) { // the scheduler type is not found 
-    clearResults(current_results);
-    return -2;
-  } 
-  
-  MYSQL_ROW row = mysql_fetch_row(current_results);
-  blob = string(row[0]);
 
-  clearResults(current_results);
+  blob = results[0][0];
   if(blob == "NULL" || blob == "")
     return 1;
-
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
 
   ofstream f(fname.c_str());
   f << blob; 
   f.close();
   // change privileges
-  sys->fileChmod("744",fname);
+  OSUtils::fileChmod("744",fname);
   
   return 0;
 }
@@ -566,32 +335,39 @@ int BossDatabase::getQuery(string name, string fname) {
   string blob = "";
 
   query = "SELECT QUERY_BIN FROM SCHEDULER WHERE NAME = \"" + name + "\""; 
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results || results.nrows() == 0)
     return -1;
-  }
-  
-  if ( mysql_num_rows(current_results) <= 0 ) { // the scheduler type is not found 
-    clearResults(current_results);
-    return -2;
-  } 
-  
-  MYSQL_ROW row = mysql_fetch_row(current_results);
-  blob = string(row[0]);
 
-  clearResults(current_results);
+  blob = results[0][0];
   if(blob == "NULL" || blob == "")
     return 1;
-
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
 
   ofstream f(fname.c_str());
   f << blob; 
   f.close();
   // change privileges
-  sys->fileChmod("744",fname);
+  OSUtils::fileChmod("744",fname);
   
   return 0;
+}
+
+// 0 successful
+// <0 error
+// >0 file not stored
+string BossDatabase::getCopy(string name) {
+
+  string return_val = "";
+
+  string query = "SELECT COPY_COMMAND FROM SCHEDULER WHERE NAME =\'" + name + "\'";;
+  SirDBResultSet results = backend->fetch_query(query);
+  if(results.nrows() != 1)
+    cout << "DB inconsistency !! Copy command not set for scheduler !!" << endl;
+  else
+    return_val = string(results[0][0]);
+
+  return return_val;
+
 }
 
 // 0 successful
@@ -603,30 +379,19 @@ int BossDatabase::getPreProcess(string type, string fname) {
   string blob = "";
 
   query = "SELECT PRE_BIN FROM JOBTYPE WHERE NAME = \"" + type + "\""; 
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results || results.nrows() == 0)
     return -1;
-  }
-  
-  if ( mysql_num_rows(current_results) <= 0 ) { // the scheduler type is not found 
-    clearResults(current_results);
-    return -2;
-  } 
-  
-  MYSQL_ROW row = mysql_fetch_row(current_results);
-  blob = string(row[0]);
 
-  clearResults(current_results);
+  blob = results[0][0];
   if(blob == "NULL" || blob == "")
     return 1;
   
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-
   ofstream f(fname.c_str());
   f << blob; 
   f.close();
   // change privileges
-  sys->fileChmod("744",fname);
+  OSUtils::fileChmod("744",fname);
 
   return 0;
 }
@@ -637,30 +402,19 @@ int BossDatabase::getRuntimeProcess(string type, string fname) {
   string blob = "";
 
   query = "SELECT RUN_BIN FROM JOBTYPE WHERE NAME = \"" + type + "\""; 
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results || results.nrows() == 0)
     return -1;
-  }
-  
-  if ( mysql_num_rows(current_results) <= 0 ) { // the scheduler type is not found 
-    clearResults(current_results);
-    return -2;
-  } 
-  
-  MYSQL_ROW row = mysql_fetch_row(current_results);
-  blob = string(row[0]);
 
-  clearResults(current_results);
+  blob = results[0][0];
   if(blob == "NULL" || blob == "")
     return 1;
-
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
 
   ofstream f(fname.c_str());
   f << blob; 
   f.close();
   // change privileges
-  sys->fileChmod("744",fname);
+  OSUtils::fileChmod("744",fname);
   
   return 0;
 }
@@ -671,30 +425,19 @@ int BossDatabase::getPostProcess(string type, string fname) {
   string blob = "";
 
   query = "SELECT POST_BIN FROM JOBTYPE WHERE NAME = \"" + type + "\""; 
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results || results.nrows() == 0)
     return -1;
-  }
-  
-  if ( mysql_num_rows(current_results) <= 0 ) { // the scheduler type is not found 
-    clearResults(current_results);
-    return -2;
-  } 
-  
-  MYSQL_ROW row = mysql_fetch_row(current_results);
-  blob = string(row[0]);
 
-  clearResults(current_results);
+  blob = results[0][0];
   if(blob == "NULL" || blob == "")
     return 1;
-
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
 
   ofstream f(fname.c_str());
   f << blob; 
   f.close();
   // change privileges
-  sys->fileChmod("744",fname);
+  OSUtils::fileChmod("744",fname);
  
   return 0;
 }
@@ -717,12 +460,12 @@ BossJob* BossDatabase::findJob(int jobID) {
 	std::stringstream sch;
 	sch << schema;
 	jobH->setSchema(*ti,sch);
-	if(getSpecificJobData(jobH)!=0)return 0;
       } else {
 	cerr << "Job type " << (*ti) << " does not exisit! " << endl;
       }
     }
   }
+  if(getSpecificJobData(jobH)!=0)return 0;
 
   // Set the default update mode to be the database for future operations
   jobH->setUpdator(this);
@@ -735,14 +478,12 @@ BossJob* BossDatabase::findJob(int jobID) {
 int BossDatabase::updateJobParameter(int id, string tab, string key, string val) {
   int return_val=0;
 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-
   if(existColumn(key,tab)) {
     string idn = "JOBID";
     if (tab == "JOB") idn="ID";
     string query = "UPDATE "+tab+" SET "+key+"=\'"+val+
-      "\' WHERE "+idn+"="+ sys->convert2string(id);
-    if (accept(query)==0)
+      "\' WHERE "+idn+"="+ OSUtils::convert2string(id);
+    if(backend->query(query) == 0)
       return_val=1;
   }
   return return_val;
@@ -751,7 +492,8 @@ int BossDatabase::updateJobParameter(int id, string tab, string key, string val)
 // 0 succesful
 // -1 error
 int BossDatabase::registerScheduler (string name, string defs, string topwdirs,
-				     string submit_file, string kill_file, string query_file) {
+				     string submit_file, string kill_file, 
+				     string query_file, string copycomm) {
 
   int return_val = -1;
 
@@ -759,19 +501,14 @@ int BossDatabase::registerScheduler (string name, string defs, string topwdirs,
   int update_mode=0;
   int was_default=0;
   string query = "SELECT * FROM SCHEDULER WHERE NAME =\'" + name + "\'";;
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results)
     return return_val;
+  if(results.nrows() >= 1) {
+    update_mode = 1;
+    if(string(results[0][1]) == "Y")
+      was_default = 1;
   }
-  if ( mysql_num_rows(current_results) >=1 ) {
-    update_mode=1;
-    MYSQL_ROW row = mysql_fetch_row(current_results);
-    if ( string(row[1]) == "Y") {
-      was_default=1;
-    } 
-  }
-
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
 
   // Check consistency of "default" attribute
   string def = (defs=="TRUE") ? "Y" : "N";
@@ -779,7 +516,7 @@ int BossDatabase::registerScheduler (string name, string defs, string topwdirs,
     query = string("UPDATE SCHEDULER SET ")
       + "DEF = \'N\'"
       + " WHERE DEF = \'Y\'";
-    if (accept(query)!=0) {
+    if(backend->query(query) != 0) {
       return return_val;
     }
     cerr << name << " is the now the default scheduler!" << endl;
@@ -797,8 +534,9 @@ int BossDatabase::registerScheduler (string name, string defs, string topwdirs,
       + "\'\',"                // top working dir
       + "\'\',"                // submit script
       + "\'\',"                // kill script
-      + "\'\')";               // query script
-    if (accept(query)!=0) {
+      + "\'\',"                // query script
+      + "\'\')";               // copy script
+    if(backend->query(query) != 0) {
       return return_val;
     }
   }
@@ -807,27 +545,29 @@ int BossDatabase::registerScheduler (string name, string defs, string topwdirs,
     query += "TOP_WORK_DIR = \'"+ topwdir +"\',";
   }
   if ( submit_file != "NULL" ) {
-    unsigned int blen;
-    sys->fileSize(submit_file, &blen);
+    unsigned int blen = 0;
+    OSUtils::fileSize(submit_file, &blen);
     query += "SUBMIT_BIN = \'"+ escape_file(submit_file, blen) +"\',";
   }
   if ( kill_file != "NULL" ) {
-    unsigned int blen;
-    sys->fileSize(kill_file, &blen);
+    unsigned int blen = 0;
+    OSUtils::fileSize(kill_file, &blen);
     query += "KILL_BIN = \'"+ escape_file(kill_file, blen) +"\',";
   }
   if ( query_file != "NULL" ) {
-    unsigned int blen;
-    sys->fileSize(query_file, &blen);
+    unsigned int blen = 0;
+    OSUtils::fileSize(query_file, &blen);
     query += "QUERY_BIN = \'"+ escape_file(query_file, blen) +"\',";
+  }
+  if ( copycomm.size()>0 && copycomm != "NULL") {
+    query += "COPY_COMMAND = \'"+ copycomm +"\',";
   }
   query = query.substr(0,query.size()-1) + " WHERE NAME = \'" + name    + "\'";
   
-  if (accept(query)!=0) {
+  if(backend->query(query) != 0) {
     return return_val;
   }
   return_val = 0;
-  clearResults(current_results);
   return return_val;
 
 }
@@ -842,27 +582,20 @@ int BossDatabase::deleteScheduler (string name) {
   // DEBUG
   // cout << query << endl;
   // END DEBUG
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results)
     return return_val;
-  }
-
-  if ( mysql_num_rows(current_results) >=1 ) {
-    MYSQL_ROW row = mysql_fetch_row(current_results);
-    if        ( string(row[1]) == "Y") {
+  if(results.nrows() >= 1) {
+    if(string(results[0][1]) == "Y") {
       cerr << "deleteScheduler: Cannot delete the default scheduler!" << endl;
       cerr << "                 Register another default scheduler first!" << endl;
       return return_val;
     }
     string query = "DELETE FROM SCHEDULER WHERE NAME =\'" + name + "\'";
-    if (accept(query)!=0) {
+    if(backend->rowcount_query(query) <= 0)
       return return_val;
-    }
-    
-    if ( affectedRows() <= 0 ) { // the job is not found 
-      return return_val;
-    } 
-    return_val = 0;
+    else
+      return_val = 0;
   }
   return return_val;
 }
@@ -877,20 +610,16 @@ int BossDatabase::registerJob (string name, string schema, string comment,
   // check if job type is already registered
   int update_mode=0;
   string query = "SELECT * FROM JOBTYPE WHERE NAME =\'" + name + "\'";;
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  int rowcount = backend->rowcount_query(query);
+  if(rowcount < 0)
     return -1;
-  }
-  if ( mysql_num_rows(current_results) >=1 ) {
-    update_mode=1;
-  }
-
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
+  else if(rowcount >= 1)
+    update_mode = 1;
 
   // set schema and create the table if needed
   string sch = "";
   if ( schema != "NULL" ) {
-    if ( !sys->fileExist(schema) ) {
+    if ( !OSUtils::fileExist(schema) ) {
       cerr << "Schema file doesn't exist" << endl;
       return return_val;
     }
@@ -901,13 +630,13 @@ int BossDatabase::registerJob (string name, string schema, string comment,
     if ( update_mode ) {
       // drop the old table
       query = "DROP TABLE " + name;
-      if (accept(query)!=0) {
+      if(backend->query(query) != 0) {
 	return return_val;
       }
     }
     // create the new table
     query = "CREATE TABLE " + name + " (ID INT PRIMARY KEY AUTO_INCREMENT," 
-      + "JOBID INT,";
+      + "JOBID INT REFERENCES JOB(ID),";
     // iterate on types
     for (BossJobData::const_iterator i = dat.begin(); i != dat.end(); i++)
       query += dat[i].name() + " " + DSLType2SQLType(dat[i].type()) + ",";
@@ -915,7 +644,7 @@ int BossDatabase::registerJob (string name, string schema, string comment,
     query += ")";
     if (table_type_.size()>0)
       query += string(" TYPE=") + table_type_;
-    if (accept(query)!=0) {
+    if(backend->query(query) != 0) {
       return return_val;
     }
     
@@ -932,7 +661,7 @@ int BossDatabase::registerJob (string name, string schema, string comment,
     // DEBUG
     // cout << query << endl;
     // END DEBUG
-    if (accept(query)!=0) {
+    if(backend->query(query) != 0) {
       return return_val;
     }
     
@@ -947,7 +676,7 @@ int BossDatabase::registerJob (string name, string schema, string comment,
     // DEBUG
     // cout << query << endl;
     // END DEBUG
-    if (accept(query)!=0) {
+    if(backend->query(query) != 0) {
       return return_val;
     }
     
@@ -963,7 +692,7 @@ int BossDatabase::registerJob (string name, string schema, string comment,
       // DEBUG
       // cout << query << endl;
       // END DEBUG
-      if (accept(query)!=0) {
+      if(backend->query(query) != 0) {
 	return return_val;
       }
     }
@@ -977,7 +706,7 @@ int BossDatabase::registerJob (string name, string schema, string comment,
       + "\'\',"             // pre
       + "\'\',"             // runtime
       + "\'\')";            // post
-    if (accept(query)!=0) {
+    if(backend->query(query) != 0) {
       return return_val;
     }
   }
@@ -991,29 +720,29 @@ int BossDatabase::registerJob (string name, string schema, string comment,
   if        ( pre_file == "SKIP" ) {
     val += "PRE_BIN = \'\',";
   } else if ( pre_file != "NULL" ) {
-    unsigned int blen;
-    sys->fileSize(pre_file, &blen);
+    unsigned int blen = 0;
+    OSUtils::fileSize(pre_file, &blen);
     val += "PRE_BIN = \'"+ escape_file(pre_file, blen) +"\',";
   }
   if        ( run_file == "SKIP" ) {
     val += "RUN_BIN = \'\',";
   } else if ( run_file != "NULL" ) {
-    unsigned int blen;
-    sys->fileSize(run_file, &blen);
+    unsigned int blen = 0;
+    OSUtils::fileSize(run_file, &blen);
     val += "RUN_BIN = \'"+ escape_file(run_file, blen) +"\',";
   }
   if        ( post_file == "SKIP" ) {
     val += "POST_BIN = \'\',";
   } else if ( post_file != "NULL" ) {
-    unsigned int blen;
-    sys->fileSize(post_file, &blen);
+    unsigned int blen = 0;
+    OSUtils::fileSize(post_file, &blen);
     val += "POST_BIN = \'"+ escape_file(post_file, blen) +"\',";
   } 
   if ( !val.empty() ) {
     query = string("UPDATE JOBTYPE SET ") + val.substr(0,val.size()-1) 
       + " WHERE NAME =\'" + name + "\'";
     // cout << query << endl;
-    if (accept(query)!=0) {
+    if (backend->query(query) != 0) {
       return return_val;
     }
   }
@@ -1031,27 +760,20 @@ int BossDatabase::deleteJobType (string name) {
   // DEBUG
   // cout << query << endl;
   // END DEBUG
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  int rowcount = backend->rowcount_query(query);
+  if(rowcount < 0)
     return return_val;
-  }
-
-  if ( mysql_num_rows(current_results) >=1 ) {
+  else if(rowcount >= 1) {
     // drop the table
     string query = "DROP TABLE " + name;
-    if (accept(query)!=0) {
+    if(backend->query(query) != 0)
       return return_val;
-    }
 
     // delete the entry in the JOBTYPE table
     query = "DELETE FROM JOBTYPE WHERE NAME =\'" + name + "\'";
-    if (accept(query)!=0) {
+    if(backend->rowcount_query(query) <= 0) // the jobType is not found
       return return_val;
-    }
-    
-    if ( affectedRows() <= 0 ) { // the jobType is not found 
-      return return_val;
-    } 
+
     return_val = 0;
   }
 
@@ -1063,31 +785,31 @@ string BossDatabase::findSchema(string name) {
 
   string return_val = "";
   string query = string("SHOW FIELDS FROM ") + name;
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results) {
     cerr << "Table not known." << endl;
     return return_val;
   }
-  if ( mysql_num_rows(current_results) <=0 ) {
+  else if(results.nrows() == 0) {
     cerr << "Wrong table format" << endl;
-    clearResults(current_results);
     return return_val;
   } 
 
-  MYSQL_ROW row;
-  while ( (row = mysql_fetch_row(current_results)) ) {
-    string var=row[0];
-    if ( name!="JOB" && (var=="ID"||var=="JOBID") )
+  SirDBResultRow row;
+  size_t nrows = results.nrows();
+  for(unsigned int i = 0; i < nrows; i++) {
+    row = results[i];
+    string var = row[0];
+    if((var == "ID" || var == "JOBID") && name != "JOB")
       continue;
-    string type=row[1];
-    type = type.substr(0,type.find_first_of('(',0));
-    if ( type == "varchar" )type = "string";
-    return_val+=var+":"+type+",";
+    string type = row[1];
+    type = type.substr(0, type.find_first_of('('));
+    if(type == "varchar")
+      type = "string";
+    return_val += var + ":" + type + ",";
   }
 
-  clearResults(current_results);
-
-  return return_val.substr(0,return_val.size()-1);
+  return return_val.substr(0, return_val.size()-1);
   
 //    string return_val = "";
 
@@ -1130,70 +852,66 @@ string BossDatabase::DSLData2SQLData(string data, string type) {
   return "";
 }
 
-int BossDatabase::SQLquery(string query, ostream& result) {
+int BossDatabase::SQLquery(string query, ostream& out) {
 
   int return_val = -1;
 
-  MYSQL_RES* current_results;
-  if ( tryQuery(current_connection_, query) ) {
-    fatal("ExecQuery (1) ",800);
+  // Get the results of the query
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results) {
+    cerr << "SQLQuery: " << backend->errormsg() << endl;
     return return_val;
   }
-  current_results = mysql_store_result(current_connection_);
-  if ( !current_results ) {
-    // query returned nothing, is it an UPDATE ?
-    if ( mysql_field_count(current_connection_) == 0 ) {
-      cout << "Affected rows " << mysql_affected_rows(current_connection_) 
-	   << endl;
-      return 0;
-    } else {
-      fatal("ExecQuery (2) ",800);
-      return return_val;
+  if(results.nrows() == 0) {
+    cout << "No results" << endl;
+    return return_val;
+  }
+  SirDBResultHeaders headers = results.headers();
+  unsigned int nfields = results.nfields();
+  unsigned int nrows = results.nrows();
+
+  // Calculate field widths
+  vector<unsigned int> fields_max_l(nfields);
+  for(unsigned int j = 0; j < nfields; j++) {
+    //std::cout << "SQLquery getting header " << j << "/" << nfields << std::endl;
+    fields_max_l[j] = strlen(headers[j]);
+  }
+
+  SirDBResultRow row;
+  for(unsigned int i = 0; i < nrows; i++) {
+    //std::cout << "SQLquery getting row " << i << "/" << nrows << std::endl;
+    row = results[i];
+    unsigned int l = 0;
+    for(unsigned int j = 0; j < nfields; j++) {
+      //std::cout << "   ---> SQLquery getting field " << j << "/" << nfields << std::endl;
+      l = strlen(row[j]);
+      if(l > fields_max_l[j])
+        fields_max_l[j] = l;
     }
   }
 
-  // get the fields
-  unsigned int num_fields = mysql_num_fields(current_results);
-  MYSQL_FIELD* fields = mysql_fetch_fields(current_results);
+  // Write the number of fields and a list of the lengths of each field 
+  out << nfields;
+  for(unsigned int j = 0; j < nfields; j++)
+    out << "," << fields_max_l[j] + 2;
+  out << endl;
 
-  // compute the max length of fields 
-  unsigned int* fields_max_l = new unsigned int[num_fields];
-  unsigned int l;
-  for (unsigned int i=0; i < num_fields; i++) {
-    l = strlen(fields[i].name);
-    if ( fields[i].max_length >= l )
-      fields_max_l[i] = fields[i].max_length;
-    else 
-      fields_max_l[i] = l;
-  }
+  // Write the headers
+  for(unsigned int j = 0; j < nfields; j++)
+    out << wj(headers[j], fields_max_l[j] + 2, "left");
+  out << endl;
 
-  // return the number of fields and the list of length of each field 
-  result << num_fields;
-  for (unsigned int i=0; i < num_fields; i++) {
-    result << "," << fields_max_l[i]+2;
-  }
-  result << endl;
-
-  // header
-  for (unsigned int i=0; i < num_fields; i++) {
-    result << wj(string(" ")+fields[i].name,fields_max_l[i]+2, "left");
-  }
-  result << endl;
-
-  // tuples
-  MYSQL_ROW row;
-  string v;
-  while ( (row = mysql_fetch_row(current_results)) ) {
-    for (unsigned int i=0; i < num_fields; i++) {
-      if ( row[i] == NULL )
-	v = "NULL";
+  // Write the rows
+  for(unsigned int i = 0; i < nrows; i++) {
+    SirDBResultRow row = results[i];
+    for(unsigned int j = 0; j < nfields; j++) {
+      if(row[j] == NULL)
+        out << wj("NULL", fields_max_l[j] + 2, "left");
       else
-	v = row[i];
-      result << wj(string(" ") + v,fields_max_l[i]+2, "left");
+        out << wj(row[j], fields_max_l[j] + 2, "left");
     }
-    result << endl;
+    out << endl;
   }  
-  clearResults(current_results);
 
   return 0;
 }
@@ -1205,22 +923,15 @@ vector<string> BossDatabase::schedulers() {
   //  if (!connect())return return_val;
 
   string query = "SELECT NAME FROM SCHEDULER";
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
-    return return_val;
-  }
-  if ( mysql_num_rows(current_results) <=0 ) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results)
+    ;
+  else if(results.nrows() == 0)
     cout << "DB inconsistency !! No scheduler avaible" << endl;
-    clearResults(current_results);
-    return return_val;
-  } 
-
-  MYSQL_ROW row;
-  while ( (row = mysql_fetch_row(current_results)) ) {
-    return_val.push_back(row[0]);
+  else {
+    for(unsigned int i = 0; i < results.nrows(); i++)
+      return_val.push_back(results[i][0]);
   }
-
-  clearResults(current_results);
   return return_val;
 }
 
@@ -1229,27 +940,22 @@ vector<string> BossDatabase::jobTypes() {
   vector<string> return_val;
 
   string query = "SELECT NAME,COMMENT FROM JOBTYPE";
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
-    return return_val;
-  }
-  if ( mysql_num_rows(current_results) <=0 ) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results)
+    ;
+  else if(results.nrows() == 0)
     cout << "DB inconsistency !! No jobtype avaible" << endl;
-    clearResults(current_results);
-    return return_val;
-  } 
-
-  MYSQL_ROW row;
-  while ( (row = mysql_fetch_row(current_results)) ) {
-    return_val.push_back(string(row[0])+"\t"+row[1]);
+  else {
+    for(unsigned int i = 0; i < results.nrows(); i++) {
+      SirDBResultRow row = results[i];
+      return_val.push_back(string(row[0]) + '\t' + row[1]);
+    }
   }
-
-  clearResults(current_results);
   return return_val;
 
 }
 
-vector<BossJob*> BossDatabase::jobs(char option, string type, string user, string format) {
+vector<BossJob*> BossDatabase::jobs(BossJobIDRange idr, char option, string type, string user, string format) {
   vector<BossJob*> return_val;
   string what = "";
   string options = "";
@@ -1282,22 +988,22 @@ vector<BossJob*> BossDatabase::jobs(char option, string type, string user, strin
     options += " T_STOP = 0";
   }
   string query = "SELECT "+what;
-  if (options != "" ) query +=" WHERE "+options;
+  query +=" WHERE JOB.ID>="+idr.sfirst()+
+    " AND JOB.ID<="+idr.slast();
+  if (options != "" ) query +=" AND "+options;
   query +=" ORDER BY JOB.ID";
 
   // DEBUG
   // cout << query << endl;
   // END DEBUG
 
-  MYSQL_RES* current_results = getResults(query);
-  if (current_results==0) {
+  SirDBResultSet results = backend->fetch_query(query);
+  if(!results) {
     cerr << "No connection avaible !!" << endl;
     return return_val;
   }
-
-  if ( mysql_num_rows(current_results) <=0 ) {
+  else if(results.nrows() == 0) {
     cout << "No jobs found !!" << endl;
-    clearResults(current_results);
     return return_val;
   } 
 
@@ -1309,23 +1015,10 @@ vector<BossJob*> BossDatabase::jobs(char option, string type, string user, strin
     // END DEBUG
   }
 
-  MYSQL_ROW row;
-  // DEBUG
-  // cout << " Scanning " << mysql_num_rows(current_results) << " records" << endl;
-  // END DEBUG
-  // get the fields structure
-  unsigned int num_fields = mysql_num_fields(current_results);
-  MYSQL_FIELD* fields = mysql_fetch_fields(current_results);
+  SirDBResultHeaders headers = results.headers();
+  for(unsigned int i = 0; i < results.nrows(); i++) {
+    SirDBResultRow row = results[i];
 
-  // DEBUG
-  // for (unsigned int i=0; i!= num_fields; i++) {
-  //  string n = fields[i].name;
-  // cout << i << ":" << n << endl;
-  // }
-  // END DEBUG
-
-  while ( (row = mysql_fetch_row(current_results)) ) {
-    
     BossJob* jobH = new BossJob();
     std::stringstream sch;
     sch << schema;
@@ -1335,28 +1028,21 @@ vector<BossJob*> BossDatabase::jobs(char option, string type, string user, strin
     if (id <= 0)
       cerr << row[0] << endl;
     jobH->setId(id);
-    for (unsigned int i=1; i!= num_fields; i++) {
-      string n = fields[i].name;
+
+    for(unsigned int i = 1; i < headers.nfields(); i++) {
+      string n = headers[i];
       string v = string(row[i]);
       string tab = type;
-      if ( i<21 ) // JOB has 20 columns !!
+      if(i < 25) // JOB has 24 columns !!  To be modified!!!
 	tab = "JOB";
-      if( string(fields[i].name)!="ID" && string(fields[i].name)!="JOBID" ) {
-	jobH->setData(BossUpdateElement(id,tab,fields[i].name,string(row[i])));
-      }
+      if(string(headers[i]) != "ID" && string(headers[i]) != "JOBID")
+	jobH->setData(BossUpdateElement(id, tab, headers[i], row[i]));
     }
-    if(!jobH) continue;
-    if (type == "" || jobH->isOfType(type)) {
+    if(type == "" || jobH->isOfType(type))
       return_val.push_back(jobH);
-    } else {
+    else
       delete jobH;
-    }
   }
-
-  clearResults(current_results);
-  // DEBUG
-  // cout << " returning job vector, size is " << return_val.size() << endl;
-  // END DEBUG
   return return_val;
 
 }
@@ -1389,13 +1075,11 @@ string BossDatabase::wj(string data, unsigned int width, string justify) {
 
 
 string BossDatabase::escape_file(string filename, unsigned int len) {
-  
+
   ifstream In(filename.c_str(),ios::in | ios::binary); 
   char  *read_buffer = new char[len];
-  char  *escaped_buffer = new char[len*2];
   In.read(read_buffer,len);
-  mysql_real_escape_string(current_connection_,escaped_buffer,read_buffer,len);
-  return string(escaped_buffer);
+  return backend->escape(read_buffer, len);
 
 }
 
