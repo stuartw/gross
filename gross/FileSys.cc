@@ -25,3 +25,13 @@ FileSys* FileSys::instance() {
     instance_ = new FileSys();
   return instance_;
 }
+
+string FileSys::workingDir() {
+  char dir[1024];
+  if (getcwd(dir, sizeof(dir)) == NULL) {
+    if(Log::level()>0) cout <<"Error determinig current directory - set to ./"<<Log::level()<<endl;
+    return string("./");
+  }
+  else return string(dir);
+}
+

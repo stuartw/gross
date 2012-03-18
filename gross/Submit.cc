@@ -7,10 +7,10 @@
 
 Submit::Submit() : Command() {
   opt_["-taskId"] = "0";
-  opt_["-oDir"]  = "./";
+  opt_["-oDir"]  = "./"; //FileSys::workingDir();
   opt_["-dbSpec"];
-  opt_["-bossType"]  = "NULL";
-  opt_["-bossSched"]  = "NULL";
+  opt_["-bossType"]  = "gross";
+  opt_["-bossSched"]  = "lcg";
   opt_["-jobId"]  = "NULL";
   opt_["-logLevel"]  = "0";
 }
@@ -63,10 +63,11 @@ int Submit::execute() {
   if(pTask->makeSubFiles()) return EXIT_FAILURE;
 
   //Submit jobs
-  if(opt_["-bossType"]=="NULL" || opt_["-bossSched"]=="NULL") {
-    cerr <<"Error: -bossType and/or -bossSched not specified"<<endl;
-    return EXIT_FAILURE;
-  }
+  //if(opt_["-bossType"]=="NULL" || opt_["-bossSched"]=="NULL") {
+  //  cerr <<"Error: -bossType and/or -bossSched not specified"<<endl;
+  //  return EXIT_FAILURE;
+  //}
+ 
   BossIf myBossIf(pTask); //Create BOSSIf object to submit to
   if(opt_["-jobId"]!="NULL") {
     int myJobId = atoi((opt_["-jobId"]).c_str());

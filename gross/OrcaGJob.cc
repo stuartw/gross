@@ -11,7 +11,7 @@
 
 #include "PhysCat.hh"
 
-OrcaGJob::OrcaGJob(const int anId, const int aDataSelect, Task* aTask) : Job(anId, aDataSelect, aTask), pXMLFragFile_(0) {};
+OrcaGJob::OrcaGJob(const int anId, const vector<int> aDataSelect, Task* aTask) : Job(anId, aDataSelect, aTask), pXMLFragFile_(0) {};
 
 OrcaGJob::~OrcaGJob() {
   if(pXMLFragFile_) delete pXMLFragFile_;
@@ -29,10 +29,18 @@ int OrcaGJob::save() {
   
   ostringstream myKeys, myValues;
 
-  //Extra to Job table
-  myKeys << "MetaFile";
-  myValues << "'" << metaFile()<<"'";
-  if(LocalDb::instance()->tableUpdate("Analy_Job", myKeys.str(), myValues.str(), mySel.str())) return EXIT_FAILURE; 
+  //inMETAs Table
+  myKeys.str("");
+  myKeys << "TaskID, JobID, Name";
+  set<string> myVec=metaFile();
+  for (set<string>::const_iterator i=myVec.begin(); i!= myVec.end(); i++){
+    myValues.str("");
+    myValues << task_->Id() << "," << Id() << ",'"<< (*i)<<"'";
+    if(LocalDb::instance()->tableSave("Analy_InMETAs", myKeys.str(), myValues.str())) return EXIT_FAILURE;
+  }
+  
+  //myValues << "'" << metaFile()<<"'";
+  //if(LocalDb::instance()->tableUpdate("Analy_Job", myKeys.str(), myValues.str(), mySel.str())) return EXIT_FAILURE; 
   
   //InGUIDs Table
   myKeys.str("");

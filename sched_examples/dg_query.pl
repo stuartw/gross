@@ -9,7 +9,7 @@ $command = "edg-job-status -i ~/.bossEDGjobs -noint |";
 open (QUERY , $command );
 
 while ( <QUERY> ) {
-    if ( $_ =~ /Status info for the Job\s+:\s+(.*)\s*/ ) {
+    if ( $_ =~ /Status info for the Job :\s+(.*)\s*/ ) {
 	$sid = $1;
 	$_ = <QUERY>;
 	if ( $_ =~ /Current Status:\s+(\w+)\s*/ ) {
@@ -30,11 +30,13 @@ foreach $sid ( keys %stat ) {
 	      $stat{$sid} eq "Submitted" ||
 	      $stat{$sid} eq "Undefined" ) {
 	print "$sid I\n";
+    } elsif ( $stat{$sid} eq "Cancelled" ) {
+	print "$sid MK\n";
+    } elsif ( $stat{$sid} eq "Done" ) {
+	print "$sid ME\n";
 #	print LOG "I\n";
 #    } else {
 #	print LOG "?\n";
     }
 }
 #print LOG "End dump durrent situation:\n";
-
-

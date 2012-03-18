@@ -93,8 +93,9 @@ public:
   int setData(const BossUpdateSet& us, bool force = false);
 
   void setBasicInfo(std::string,std::string,std::string,std::string,
-                    std::string,std::string,std::string,std::string);
+                    std::string,std::string,std::string);
   void setSubInfo(std::string,std::string,std::string);
+  void setScheduler(std::string);
   void setExeInfo(std::string,std::string,std::string,time_t);
   void setId(int);
   void setSid(std::string);

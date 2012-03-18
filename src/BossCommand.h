@@ -10,12 +10,12 @@
 #ifndef BOSS_COMMAND_H
 #define BOSS_COMMAND_H
 
-#include <map>
 #include <string>
+#include "ClassAdLite.h"
 
 class BossCommand {
 protected:
-  typedef std::map< std::string,std::string,std::less<std::string> > Options;
+  typedef CAL::ClassAdLite Options;
   typedef Options::const_iterator Options_const_iterator;
   typedef Options::iterator Options_iterator;
   Options opt_;

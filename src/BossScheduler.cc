@@ -227,12 +227,7 @@ string BossScheduler::status(BossJob* jobH) {
       // the job was abort
       res = "A";
     } else {
-      if ( startt != null )
-	// the job is running
-        res = "R";
-      else
-        // the job is idle
-        res = "I";
+      res = state;
     }
   }
   // others cases are not known

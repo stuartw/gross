@@ -1,0 +1,15 @@
+[
+BossAttr = {aaa,bbb,ccc,"dd d"};
+BossAttr1 = [
+    test:counter=9999;
+    testErr:counter=9998;
+  ];
+aa = ;
+args = "40 50";
+executable = "test.pl";
+jobtype = "test,testErr";
+log = "test.log";
+stderr = err;
+stdin = "in";
+stdout = "out";
+]

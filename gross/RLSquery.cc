@@ -17,50 +17,11 @@ RLSquery::~RLSquery() {
   int RLSquery::initLocalCatalog(File& xmlFile, bool create) {
     string contact="file:" + xmlFile.fullHandle();
     return init(contact, true);
-  //catalog_type = "xmlcatalog";
-  //catalog_url = "file:" + xmlFile.fullHandle();
-  //bool exists = FCSystemTools::FileExists(xmlFile.fullHandle().c_str());
-  //if(Log::level()>0) std::cout <<"RLSquery::initLocalCatalog connecting to catalogue "<<catalog_url<<std::endl;
-  //try{
-    //catalog = FCSystemTools::createCatalog(catalog_type);
-    //catalog->connect(catalog_url);
-    //catalog->start();
-    //if(Log::level()>2) std::cout << "RLSquery::initRLSCatalog connected to catalogue" << std::endl;
-  //}catch (const seal::Exception& er){
-    //er.printOut(std::cerr);
-    //std::cerr << std::endl;
-    //if (er.code().isError()){
-      //exit(er.code().code());
-    //}
-  //}
-  /*if (create !=  exists)*/ return 0; //no error
-  //else return 1; //error
   }
-
-  /*int RLSquery::initRLSCatalog(const string& host) {
-  catalog_type = "edgcatalog";
-  catalog_url = host;
-  if(Log::level()>0) std::cout <<"RLSquery::initRLSCatalog connecting to catalogue "<<catalog_url<<std::endl;
-  try{
-    catalog = FCSystemTools::createCatalog(catalog_type);
-    catalog->connect(catalog_url);
-    catalog->start();
-    if(Log::level()>2) std::cout << "RLSquery::initRLSCatalog connected to catalogue" << std::endl;
-  }catch (const seal::Exception er){
-    er.printOut(std::cerr);
-    std::cerr << std::endl;
-    if (er.code().isError()){
-      //exit(er.code().code());
-      std::cerr << " RLSquery::initRLSCatalog - connection failed"<<std::endl;
-      return 1;
-    }
-  }
-  return 0;
-  }*/
 
 int RLSquery::init(const string& contact, bool create) {
   try{
-    if(Log::level()>0) std::cout <<"RLSquery::init connecting to catalogue "<<catalog_url<<std::endl; 
+    if(Log::level()>0) std::cout <<"RLSquery::init connecting to catalogue "<<contact<<std::endl; 
     //catalog->setWriteCatalog(contact);
     //catalog->setAction(lookup);
     catalog = new IFileCatalog;
@@ -81,17 +42,17 @@ int RLSquery::init(const string& contact, bool create) {
 
 vector<string> RLSquery::listLFNs(const string& query) {
   try{
-    LFNContainer lfns(catalog, 100);
     vector<string> vecLFN;
     vector<string> queries = or_parser(query);
     for (int i=0; i<queries.size(); i++) {
+      LFNContainer lfns(catalog, 100);
       lookup.lookupLFNByQuery(queries[i], lfns); 
       while(lfns.hasNext()) {
         stringstream stream;
         LFNEntry lfn=lfns.Next();
         stream << lfn.lfname();
         string result = stream.str();
-        vecLFN.push_back(result);
+	vecLFN.push_back(result);
       }
     }
     return vecLFN;
@@ -107,10 +68,10 @@ vector<string> RLSquery::listLFNs(const string& query) {
 vector<string> RLSquery::listPFNs(const string& query) {
   try{
     //catalog->setAction(lookup);
-    PFNContainer pfns(catalog, 100);
     vector<string> vecPFN;
     vector<string> queries = or_parser(query);
     for (int i=0; i<queries.size(); i++) {
+      PFNContainer pfns(catalog, 100);
       lookup.lookupPFNByQuery(queries[i], pfns);
         while(pfns.hasNext()) {
         stringstream stream;
@@ -176,7 +137,7 @@ int RLSquery::publishLocalCatalog(File& file, const string& query, bool create) 
       newcatalog->start();
     MetaDataEntry spec;
     lookup.getMetaDataSpec(spec);
-    admin.createMetaDataSpec(spec);    
+    if (create) admin.createMetaDataSpec(spec);    
     vector<string> queries = or_parser(query);
     for (int i=0; i<queries.size(); i++) {
       newcatalog->importCatalog(catalog, queries[i]);
@@ -207,7 +168,7 @@ vector<string> RLSquery::or_parser(string query) {
       j = query.size();
     }
     int diff = j - i;
-    //if(Log::level()>2) cout << "RLSquery:: publishLocalCatalog() query is: " << query.substr(i, diff) << endl;
+    if(Log::level()>4) cout << "RLSquery:: publishLocalCatalog() subquery is: " << query.substr(i, diff) << endl;
     ors.push_back(query.substr(i, diff));
     i = j + 4;
   }

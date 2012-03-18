@@ -25,6 +25,8 @@ public:
   const string status(const Job* pJob); ///<Returns BOSS status letter (returns "U" for failure, "N" for not submitted)
   int bossId(const Job* pJob) const; ///<Returns 0 for error, BossId for success.
   const string schedId(const Job* pJob) const; ///<Returns "" for error, schedId for success.
+  int killJob(const int jobId) const; ///<Returns 0 for error, 1 for success.
+  int killTask() const; ///<Returns 0 for error, 1 for success.
 private:
   /*!
     \brief General query method

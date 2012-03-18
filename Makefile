@@ -5,17 +5,17 @@ config:
 	@ ./CONFIGURE
 
 compile:
-	@ cd classad; $(MAKE); cd ..;
+	@ cd ClassAdLite; $(MAKE); cd ..;
 	@ . bossenv.sh; cd src; $(MAKE) -k; cd ..;
 
 database: compile
-	@. bossenv.sh;  boss configureDB
+	@. bossenv.sh;  boss configureDB                          
 
 gross: database
 	@ . bossenv.sh; cd gross; $(MAKE); cd ..;
 
 clean:
-	@ cd classad; $(MAKE) clean; cd ..;
+	@ cd ClassAdLite; $(MAKE) clean; cd ..;
 	@ cd src; $(MAKE) clean ; cd ..;
 	@ cd jobtest; rm -rf *.log out* err* Boss*; cd ..;
 	@ cd gross; $(MAKE) clean; cd ..;

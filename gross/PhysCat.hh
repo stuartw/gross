@@ -16,8 +16,12 @@ public:
   const vector<string> listPFNs(const string& aDataSubQuery);
   File* xMLFrag(const string& aDataSubQuery, string aFileName);
 private:
+  int setDatasetOwner(const std::string query); 
   File* localRLSFrag_;
   RLSquery* localRLSQuery_; 
+  std::string owner;
+  std::string dataset;
+  std::string query;
   //No implementation
   PhysCat(const PhysCat&);
   PhysCat& operator=(const PhysCat&);

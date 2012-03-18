@@ -12,6 +12,7 @@
 #include "BossOperatingSystem.h"
 #include "BossDatabase.h"
 #include "BossUpdateElement.h"
+#include "ClassAdLite.h"
 
 #include <cstring>
 #include <map>
@@ -83,8 +84,9 @@ string BossJob::getSpecificDataType(string name) const {
 }
 
 vector<string> BossJob::getJobTypes() const { 
-  BossOperatingSystem* sys=BossOperatingSystem::instance();
-  return sys->splitString(getJobTypeString(),',');
+  //  BossOperatingSystem* sys=BossOperatingSystem::instance();
+  return CAL::getList(getJobTypeString());
+  //  return sys->splitString(getJobTypeString(),',');
 }
 
 int BossJob::isOfType(string type) const {
@@ -180,11 +182,10 @@ string BossJob::getJobTypeString() const {
   return generalData_["TYPE"].value(); 
 }
 
-void BossJob::setBasicInfo(string type, string sched, string exe, string args,
+void BossJob::setBasicInfo(string type, string exe, string args,
 			   string stdin, string stdout, string stderr, 
 			   string log) {
   setData(BossUpdateElement(getId(),"JOB","TYPE",type),true);
-  setData(BossUpdateElement(getId(),"JOB","SCH",sched),true);
   setData(BossUpdateElement(getId(),"JOB","EXEC",exe),true);
   setData(BossUpdateElement(getId(),"JOB","ARGS",args),true);
   setData(BossUpdateElement(getId(),"JOB","STDIN",stdin),true);
@@ -193,11 +194,15 @@ void BossJob::setBasicInfo(string type, string sched, string exe, string args,
   setData(BossUpdateElement(getId(),"JOB","LOG",log),true);
 }
 
-void BossJob::setSubInfo(string host, string path,  string user) {
+void BossJob::setSubInfo(string host, string path, string user) {
   setData(BossUpdateElement(getId(),"JOB","S_HOST",host),true);
   setData(BossUpdateElement(getId(),"JOB","S_PATH",path),true);
   setData(BossUpdateElement(getId(),"JOB","S_USR",user),true);
 }
+
+void BossJob::setScheduler(string sched) {
+  setData(BossUpdateElement(getId(),"JOB","SCH",sched),true);
+} 
 
 void BossJob::setExeInfo(string host, string path, string user, time_t time) {
   BossOperatingSystem* sys=BossOperatingSystem::instance();

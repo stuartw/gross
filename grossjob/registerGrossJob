@@ -1,5 +1,5 @@
 #!/bin/sh
 
-boss registerJob -name gross -schema schema -runtime runtimeprocess -comment "GROSS-wrapped ORCA job"
+boss registerJob -name gross -schema schema -runtime runtimeprocess -comment "GROSS-wrapped job"
 
 

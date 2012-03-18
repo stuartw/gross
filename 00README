@@ -1,11 +1,22 @@
-                            =============
-                             BOSS v3_3_9
-                            =============
+                            ===============
+                             BOSS v3_4_0-1
+                            ===============
 
 See documentation at http://www.bo.infn.it/cms/computing/BOSS/
 
 Release notes
 =============
+   * Version 3.4.0
+        o Use ClassAdLite instead of official classad package
+        o Syntax on BossAttr changed. See jobtest/test.clad for example
+        o Two-steps submission: "boss declare" + "boss submit -jobid <JobID>"
+   * Version 3.3.10
+        o fixed bug in jobExecutor which prevented use without shared $BOSSDIR
+        o BossArchive created in dedicated directory at submission time
+          to cope with BossConfig.clad being in submission directory
+        o boss query may return user defined status
+        o fixed dg_XXX scripts to work on LCG-2
+        o added boss-edg-job-get-output <bossJobID> to retrieve sandbox on LCG 
    * Version 3.3.9
         o protection against boss processes hanging in jobExecutor
    * Version 3.3.8

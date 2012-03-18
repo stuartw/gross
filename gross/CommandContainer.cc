@@ -6,6 +6,7 @@
 #include "Query.hh"
 #include "Output.hh"
 #include "Delete.hh"
+#include "Kill.hh"
 
 CommandContainer::CommandContainer() {
   // All the command interfaces are created here
@@ -31,6 +32,10 @@ CommandContainer::CommandContainer() {
   c=new Delete();
   cmd_["delete"]=c;
   cmd_["d"]=c;
+  //Kill jobs
+  c=new Kill();
+  cmd_["kill"]=c;
+  cmd_["k"]=c;
   //Register Wrapper
   c=new Register();
   cmd_["register"]=c;
@@ -65,6 +70,7 @@ void CommandContainer::printUsage() const
        << "\tquery [q]            : query job(s) status" << endl
        << "\toutput [o]           : find and retrieve task output files" << endl
        << "\tdelete [d]           : delete task or jobs from DB" << endl
+       << "\tkill [k]             : kill submitted task or jobs" << endl
        << "\tregister [r]         : register job wrapper script" << endl;
 }
 

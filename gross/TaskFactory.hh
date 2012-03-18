@@ -57,7 +57,8 @@ public:
 
   virtual Task* makeTask(const File* userCladFile) const=0; ///<Factory method
   virtual Task* makeTask(int anId) const=0; ///<Factory method
-  virtual Job* makeJob(const int anId, const int aDataSelect, Task* aTask) const=0; ///<Factory method
+  //virtual Job* makeJob(const int anId, const int aDataSelect, Task* aTask) const=0; ///<Factory method
+  virtual Job* makeJob(const int anId, const vector<int> aDataSelect, Task* aTask) const=0; ///<Factory method
   virtual JDL* makeJDL(const Job* aJob, const CladLookup* aUserSpec, const string aFileName) const=0; ///<Factory method
   virtual Wrapper* makeWrapper(const Job* aJob, CladLookup* aUserSpec, const string aFileName) const=0; ///<Factory method
 protected:

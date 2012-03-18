@@ -10,6 +10,7 @@ public:
   ~Prepare();
   int execute();
   void printUsage() const;
+  string workingDir();
 };
 
 

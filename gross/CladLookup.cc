@@ -11,20 +11,27 @@ CladLookup::~CladLookup(){
 const string CladLookup::jdlDump() const {
   if(jdlDump_!="NULL") return jdlDump_; //This to return a forced jdlDump value set in setJdlDump
   ostringstream os;
-  for(ClassAd::const_iterator i = clad_->begin() ; i != clad_->end() ; i++) { 
+  for(BossClassAd::const_iterator i = clad_->begin() ; i != clad_->end() ; i++) { 
     string myIdent=clad_->getIdent(i);
     string myValue=clad_->getValue(i);
     //getIdent and getValue (in)conveniently remove brackets and 
     //other syntax needed again in jdl, so we need to put them back in - ug.
     string::size_type i = myValue.find_first_not_of(" \t");
-    if(!(myValue.substr(i,1)=="{" || myValue.substr(i,1)=="\"" || myValue.substr(i,1)=="(")) {
-      myValue.insert(i,"\"");
-      string::size_type j = myValue.find_last_not_of(" \t");
-      myValue.insert(j+1,"\"");
+    if (! (cladMap_.find(myIdent) == cladMap_.end())) continue;
+    if (myIdent!="Requirements") {
+      //string::size_type i = myValue.find_first_not_of(" \t");
+      if(!(myValue.substr(i,1)=="{" || myValue.substr(i,1)=="\"" || myValue.substr(i,1)=="(")) {
+        myValue.insert(i,"\"");
+        string::size_type j = myValue.find_last_not_of(" \t");
+        myValue.insert(j+1,"\"");
+      }
+      i = myValue.find_last_not_of(" \t");
     }
-    i = myValue.find_last_not_of(" \t");
-    myValue.insert(i+1, ";");
-    os << myIdent << " = " << myValue << endl;
+    //else {
+    //  
+    //}
+      //myValue.insert(i+1, ";");
+    os << myIdent << " = " << myValue << ";" << endl;
   }  
   return os.str();
 }

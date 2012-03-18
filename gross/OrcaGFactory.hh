@@ -21,7 +21,8 @@ public:
   OrcaGFactory() : newTask_(true) {};
   Task* makeTask(int anId) const;
   Task* makeTask(const File* userCladFile) const;
-  Job* makeJob(const int anId, const int aDataSelect, Task* aTask) const;
+  //Job* makeJob(const int anId, const int aDataSelect, Task* aTask) const;
+  Job* makeJob(const int anId, const vector<int> aDataSelect, Task* aTask) const;
   JDL* makeJDL(const Job* aJob, const CladLookup* aUserSpec, const string aFileName) const;
   Wrapper* makeWrapper(const Job* aJob, CladLookup* aUserSpec, const string aFileName) const;
 private:

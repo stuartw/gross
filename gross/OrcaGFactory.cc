@@ -15,9 +15,13 @@ Task* OrcaGFactory::makeTask(const File* userCladFile) const {
   newTask_ = true;
   return new NewOrcaTask(userCladFile);
 }
-Job* OrcaGFactory::makeJob(const int myId, const int myDataSelect, Task* myTask) const {
+/*Job* OrcaGFactory::makeJob(const int myId, const int myDataSelect, Task* myTask) const {
   if(newTask_) return new NewOrcaGJob(myId, myDataSelect, myTask); 
   else return new DbOrcaGJob(myId, myDataSelect, myTask);
+}*/
+Job* OrcaGFactory::makeJob(const int myId, const vector<int> myDataSelect, Task* myTask) const {
+	  if(newTask_) return new NewOrcaGJob(myId, myDataSelect, myTask);
+	    else return new DbOrcaGJob(myId, myDataSelect, myTask);
 }
 JDL* OrcaGFactory::makeJDL(const Job* aJob, const CladLookup* aUserSpec, const string aFileName) const {
   const OrcaGJob* pOGJ=dynamic_cast<const OrcaGJob*> (aJob); //This is safe as Factory controls what derived object aJob points to

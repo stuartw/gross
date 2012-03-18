@@ -1,6 +1,7 @@
 #include "TaskFactory.hh"
 
 #include "OrcaGFactory.hh"
+#include "OrcaLocFactory.hh"
 
 TaskFactory::~TaskFactory() {};
 
@@ -20,10 +21,12 @@ TaskFactory* TaskFactory::instance() {
   if(instance_==0) {
     if(facType_.empty()) {
       cerr <<"TaskFactory::instance() Error: Factory type not set!\n";
+      abort();
       return instance_;
     }
     if(facType_=="OrcaG") instance_ = new OrcaGFactory(); //Subclass here when required
-
+    if(facType_=="OrcaLoc") instance_ = new OrcaLocFactory();
+    
     if(!instance_) cerr << "TaskFactory::instance() Error: Unknown factory type "<<facType_<<endl;
   }
   return instance_;

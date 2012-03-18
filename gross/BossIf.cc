@@ -48,8 +48,8 @@ int BossIf::submitJob(const string mySched, const string myBossJobType, const Jo
   if(ci.acceptCommand(bossargc, bossArgs)) return EXIT_FAILURE;
   cout <<"===End BOSS API submit output.==="<<endl;
   cout.rdbuf(psbuf_orig);
-  if(Log::level()>0)  cout <<"BossIf::submitJob() Full output from BOSS submission is:"<<endl << bossOutput.str();
-
+  if(Log::level()>0) cout <<"BossIf::submitJob() Full output from BOSS submission is:"<<endl << bossOutput.str();
+  
   //Get BossID (Not pretty, but only way I can think of doing this...)
   bossId=LocalDb::instance()->maxCol("JOB","ID");
   if(!bossId||bossId!=(lastId+1)) {
@@ -218,5 +218,53 @@ const string BossIf::queryBossDb(const Job* pJob, const string tablename,
     return noVal;
   }
   return myResults[0];
+}
+
+int BossIf::killJob(const int jobId) const {
+  ostringstream os;
+  os << jobId;
+  BossCommandInterpreter ci;
+  int bossargc=3;
+  char* bossArgs[bossargc]; 
+  bossArgs[0] = "kill";
+  bossArgs[1] = "-jobid"; 
+  bossArgs[2] = const_cast<char*> (os.str().c_str());
+  if(Log::level()>0) {
+    cout << "BossIf::killJob() killing Boss job with arguments: "<<endl;
+    for(int i=0; i<bossargc;i++)
+      cout << bossArgs[i]<< " ";
+      cout <<endl;
+   }
+
+  //Redirect cout to an ostringstream and run Boss command
+  std::streambuf* psbuf_orig = cout.rdbuf();
+  ostringstream bossOutput;
+  cout.rdbuf(bossOutput.rdbuf());
+  cout <<"===Begin BOSS API submit output:"<<endl;
+  if(ci.acceptCommand(bossargc, bossArgs)) return EXIT_FAILURE;
+  cout <<"===End BOSS API submit output.==="<<endl;
+  cout.rdbuf(psbuf_orig);
+  if(Log::level()>0)  cout <<"BossIf::submitJob() Full output from BOSS kill is:"<<endl << bossOutput.str();
+  cout << "Job with BOSS Id " << jobId << " successfully deleted from scheduler"<<endl;
+ 
+  return EXIT_SUCCESS;
+}
+
+int BossIf::killTask() const {
+  if(!pTask_) {
+    cerr<<"BossIf::killTask() Error Task not defined!"<<endl;
+    return EXIT_FAILURE;
+  }
+  const vector<Job*>* pJobs = pTask_->jobs();
+  if(pJobs->empty()) {
+    cerr<<"BossIf::killTask() Error: no jobs defined for Task"<<endl;
+    return EXIT_FAILURE;
+  }
+
+  for(vector<Job*>::const_iterator i = pJobs->begin(); i!=pJobs->end(); i++) {
+    if(Log::level()>2) cout <<"BossIf::killTask() killing job with id " << (*i)->Id() <<endl;
+    if(killJob(bossId(*i))) return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }
 

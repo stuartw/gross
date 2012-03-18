@@ -4,6 +4,7 @@
 #include "DeletePtr.hh"
 #include <algorithm>
 #include "CladLookup.hh"
+#include "TaskFactory.hh"
 
 Task::Task() : userSpec_(0), Id_(0), userClad_(""), unInit_(true) {}
 
@@ -40,8 +41,8 @@ int Task::save(){
 
   if(escClad.empty()||escJDLDump.empty()) return EXIT_FAILURE;
 
-  string query = "INSERT INTO Analy_Task (UserSpec, JDLRem) VALUES (" 
-    + escClad + "," + escJDLDump + ")";
+  string query = "INSERT INTO Analy_Task (UserSpec, JDLRem, FacType) VALUES (" 
+    + escClad + "," + escJDLDump + "," + "'" + TaskFactory::facType() + "'" + ")";
 
   if(mysql_query(LocalDb::instance()->connection(), query.c_str())) {
     cerr << "Task::save(): Error saving Task user spec to Db" 

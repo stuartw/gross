@@ -1,5 +1,6 @@
 CPP = g++
 CPPFLAGS = -g -ansi
+#CPPFLAGS = -ansi
 OFLAG = -o
 .SUFFIXES : .o .cpp
 .cpp.o :
@@ -11,10 +12,10 @@ OFLAG = -o
 TOPDIR=${BOSSDIR}
 CMSDIR=${CMS_PATH}
 BINDIR=$(TOPDIR)/bin
-CLADINC=$(TOPDIR)/classad/include
+CLADINC=$(TOPDIR)/ClassAdLite/include
 BOSSINC=$(TOPDIR)/src
 MYSQLINC=$(TOPDIR)/mysql/include
-CLADLIB=$(TOPDIR)/classad/lib
+CLADLIB=$(TOPDIR)/ClassAdLite/lib
 BOSSLIB=$(TOPDIR)/lib
 MYSQLLIB=$(TOPDIR)/mysql/lib
 PSTREAMINC=$(TOPDIR)/pstream
@@ -27,17 +28,18 @@ SEALBASEINC =$(CMSDIR)/lcg/app/releases/SEAL/SEAL_1_3_3/include/
 POOLLIB=$(CMSDIR)/lcg/app/releases/POOL/POOL_1_6_1/rh73_gcc32/lib
 PLUGINLIB=$(CMSDIR)/lcg/app/releases/SEAL/SEAL_1_3_3/rh73_gcc32/lib/
 
+
 EXES = gross
 SOURCES = $(wildcard *.cc)
 OBJS := $(SOURCES:.cc=.o)
 INCLUDES += -I$(CLADINC) -I$(BOSSINC) -I$(MYSQLINC) -I$(POOLINC) -I$(BOOSTINC) -I$(SEALBASEINC) -I$(SINC) -I$(PSTREAMINC)
 LIB_DIRS = -L$(CLADLIB) -L$(BOSSLIB) -L$(MYSQLLIB) -L$(POOLLIB) -L$(PLUGINLIB)
-LIB_FILES +=  -lBossComm -lBossBase  -lclassad -lmysqlclient -lz -llcg_FileCatalog -llcg_AttributeList
+LIB_FILES +=  -lBossComm -lBossBase  -lClassAdLite -lmysqlclient -lz -llcg_FileCatalog -llcg_AttributeList -lcurl
 
 all: $(EXES)
 
 gross: gross.o $(OBJS)
-	$(CPP) $(CPPFLAGS) $(INCLUDES) $(OFLAG) $(BINDIR)/gross_0_1_1 gross.o $(OBJS) $(LIB_DIRS) $(LIB_FILES)
+	$(CPP) $(CPPFLAGS) $(INCLUDES) $(OFLAG) $(BINDIR)/gross gross.o $(OBJS) $(LIB_DIRS) $(LIB_FILES)
 
 gross: gross.cpp $(SOURCES) 
 
@@ -51,4 +53,6 @@ clean:
 	rm -f *.o $(EXES)
 depend: 
 	makedepend -- $(CPP) $(CPPFLAGS) -- $(INCLUDES) gross.cpp $(SOURCES) $(LIB_DIRS) $(LIB_FILES)
+
+# DO NOT DELETE
 

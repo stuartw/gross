@@ -8,7 +8,7 @@ class NewOrcaTask;
 
 class NewOrcaGJob : public OrcaGJob {
 public:
-  NewOrcaGJob(const int anId, const int aDataSelect, Task* aTask); //dataSelect is int at the moment as it is just a run num.
+  NewOrcaGJob(const int anId, const vector<int> aDataSelect, Task* aTask); //dataSelect is int at the moment as it is just a run num.
   virtual int makeSubFiles();  
   int save();
   

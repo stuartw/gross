@@ -56,7 +56,7 @@ int LocalDb::tableRead(string myTable, string myKey,
   query <<"SELECT "<< myKey << " from " << myTable << " WHERE " << mySelection;
 
   if(Log::level()>2) cout <<"LocalDb::tableRead() SQL query is "<<query.str()<<endl;
-
+  
   if(mysql_query(LocalDb::instance()->connection(), (query.str()).c_str())) {
     cerr << "LocalDb::tableRead(): Error: cannot query table " << myTable << " "
 	 <<mysql_error(LocalDb::instance()->connection())<<endl;

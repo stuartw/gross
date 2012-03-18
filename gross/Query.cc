@@ -72,7 +72,7 @@ int Query::execute() {
     //Initialise factory appropriately for this task 
     TaskFactory::del(); //ensure last concrete factory instance is deleted.
     TaskFactory::facType(getFacType(*it)); //set concrete factory type
-    
+
     //Create QInfoTask object for particular task/jobs required
     Range jobRange(opt_["-jobId"]);
     

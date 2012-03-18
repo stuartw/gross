@@ -3,6 +3,7 @@
 #include "Log.hh"
 
 #include <sys/stat.h>
+#include <sys/unistd.h>
 
 class FileSys{
 private:
@@ -14,6 +15,7 @@ public:
   static FileSys* instance();
   static string oDir() {return oDir_;};
   static int oDir(string myoDir);
+  static string workingDir();
 };
 
 

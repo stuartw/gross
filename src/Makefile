@@ -12,8 +12,8 @@ TMPDIR = $(TOPDIR)/tmp
 BINDIR = $(TOPDIR)/bin
 MYSQLINC = $(TOPDIR)/mysql/include
 MYSQLLIB = $(TOPDIR)/mysql/lib
-CLADINC = $(TOPDIR)/classad/include
-CLADLIB = $(TOPDIR)/classad/lib
+CLADINC = $(TOPDIR)/ClassAdLite/include
+CLADLIB = $(TOPDIR)/ClassAdLite/lib
 PSTREAMINC = $(TOPDIR)/pstream
 
 # defines the include path
@@ -48,9 +48,9 @@ COMMLIB = $(LIBDIR)/libBossComm.a
 SOURCES           := $(wildcard *.cc)
 
 #define objects 
-BASEOBJ := BossOperatingSystem.o BossConfiguration.o BossClassAd.o BossJob.o BossJobData.o BossJobElement.o BossDatabase.o BossUpdateElement.o
+BASEOBJ := BossOperatingSystem.o BossConfiguration.o BossJob.o BossJobData.o BossJobElement.o BossDatabase.o BossUpdateElement.o
 
-COMMOBJ := BossCommandInterpreter.o BossCommandContainer.o BossCommand.o BossScheduler.o BossDeclare.o BossDelete.o BossKill.o BossPurge.o BossQuery.o BossRecoverJob.o BossRegisterJob.o BossRegisterScheduler.o BossSQL.o BossShowJobTypes.o BossShowSchedulers.o BossSubmit.o BossVersion.o BossDeleteJobType.o BossDeleteScheduler.o BossConfigureDB.o
+COMMOBJ := BossKernel.o BossCommandInterpreter.o BossCommandContainer.o BossCommand.o BossScheduler.o BossDeclare.o BossDelete.o BossKill.o BossPurge.o BossQuery.o BossRecoverJob.o BossRegisterJob.o BossRegisterScheduler.o BossSQL.o BossShowJobTypes.o BossShowSchedulers.o BossSubmit.o BossVersion.o BossDeleteJobType.o BossDeleteScheduler.o BossConfigureDB.o
 
 # executables
 EXES              := boss jobExecutor dbUpdator
@@ -60,7 +60,7 @@ EXES              := boss jobExecutor dbUpdator
 # define our libraries 
 
 # build the option for the loader (essentially the list of libraries)
-LDFLAGSA =  $(BASELIB) $(MYSQLLIB)/libmysqlclient.a $(MYSQLLIB)/libz.a $(CLADLIB)/libclassad.a
+LDFLAGSA =  $(BASELIB) $(MYSQLLIB)/libmysqlclient.a $(MYSQLLIB)/libz.a $(CLADLIB)/libClassAdLite.a
 
 #________________________________________________________________
 #               R U L E S

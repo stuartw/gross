@@ -11,11 +11,10 @@
 #define BOSS_SUBMIT_H
 
 #include "BossCommand.h"
+#include "ClassAdLite.h"
 
 #include <vector>
 #include <string>
-
-class BossClassAd;
 
 class BossSubmit : public BossCommand {
 public:
@@ -24,7 +23,7 @@ public:
   virtual int execute();
   virtual void printUsage() const ;
 private:
-  void parseClassAd(BossClassAd*,std::vector< std::pair <std::string,std::string> >*);
+  void parseClassAd(CAL::ClassAdLite& ,CAL::ClassAdLite& );
 };
 #endif
 

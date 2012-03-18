@@ -7,7 +7,7 @@
 
 Prepare::Prepare() : Command() {
   opt_["-taskId"] = "0";
-  opt_["-oDir"]  = "./";
+  opt_["-oDir"]  = FileSys::workingDir();
   opt_["-userSpec"]  = "NULL";
   opt_["-dbSpec"];
   opt_["-save"];
@@ -79,3 +79,4 @@ int Prepare::execute() {
   
   return EXIT_SUCCESS;
 }
+

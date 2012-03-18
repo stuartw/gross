@@ -1,0 +1,11 @@
+If you need to install the MySQL server execute scripts/installMySQL.sh
+execute "./CONFIGURE" 
+        --> creates the configuration files
+execute "source bossenv.csh" or ". bossenv.sh" 
+        --> sets the environment
+execute "boss configureDB" 
+        --> creates the .sql files for DB configuration
+execute the mysql command as suggested by the output of the previous step
+        --> creates the DB users and tables
+execute "cd sched_examples; ./registerForkScheduler" 
+        --> register the "fork" scheduler

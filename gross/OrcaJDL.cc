@@ -53,7 +53,8 @@ const string OrcaJDL::script(){
     os << "InputData = {" << os2.str() << "};" <<endl;
   }
   //In case user has not added this requirement (duplicate entry is ok):
-  os << "DataAccessProtocol= {\"file\", \"gridftp\", \"rfio\"};"<<endl;
+  //if include rfio insists site must have rfio, not an OR statement, gridftp is basic requirement of all SE's
+  os << "DataAccessProtocol= {\"gsiftp\"};"<<endl;
   //Any remaining info in JDL passed transparently through
   os << userSpec_->jdlDump();
 

@@ -52,6 +52,7 @@ public:
   int fileCopy(std::string, std::string);
   int makeDir(std::string);
   int fileRemove(std::string);
+  int dirRemove(std::string);
   int fileChmod(std::string, std::string);
   std::string basename(const std::string);
   std::string dirname(const std::string);

@@ -10,7 +10,7 @@
 #include "CladLookup.hh"
 
 
-DbOrcaGJob::DbOrcaGJob(const int anId, const int aDataSelect, Task* aTask) : 
+DbOrcaGJob::DbOrcaGJob(const int anId, const vector<int> aDataSelect, Task* aTask) : 
   OrcaGJob(anId, aDataSelect, aTask) {
 
   unInit_=true;
@@ -184,16 +184,18 @@ int DbOrcaGJob::setInGUIDs(){
 
   //Meta Data File
   myResults.clear();
+  if(LocalDb::instance()->tableRead("Analy_InMETAs", "Name", os.str(), myResults)||
+    !(myResults.size())) return EXIT_FAILURE;
   
-  LocalDb::instance()->tableRead("Analy_Job", "MetaFile", os.str(), myResults);
-  if(myResults.size()!=1) return EXIT_FAILURE;
-
-  if(!myResults[0].empty()) metaFile_=myResults[0]; 
-  else {
-    cerr<<"DbOrcaGJob::setInGUIDs Error - metaFile not set in DB"<<endl;
-    return EXIT_FAILURE;
+  for(vector<string>::const_iterator i = myResults.begin(); i!= myResults.end() ; i++) {
+    if(!(*i).empty()) vmetaFile_.insert(*i);
+    else {
+      cerr<<"DbOrcaGJob::setInMETAs Error - not set in DB"<<endl;
+      return EXIT_FAILURE;
+    }
+    if(Log::level()>2) cout <<"DbOrcaGJob::setInMETAs() Read inMETA name "<<(*i) <<endl;
   }
-
+  
   return EXIT_SUCCESS;
 }
 int DbOrcaGJob::setLocalInFiles(){

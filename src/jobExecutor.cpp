@@ -47,8 +47,6 @@ int main(int argc, char** argv) {
 
   BossOperatingSystem* sys=BossOperatingSystem::instance();
 
-  BossConfiguration* config=BossConfiguration::instance();
-  
    // LOGGING
 #ifdef LOGL1
   cout << endl << "======> Job starts on " << sys->getStrTime() << " on " << sys->getHostName() << endl;
@@ -125,9 +123,6 @@ int main(int argc, char** argv) {
   // Journal file to log updates
   string journalFile = string("BossJournal_")+strid+".txt";
 
-  // Other parameters
-  string tmpdir = config->boss_tmp_dir();
-  
   // Extract files from the archive
   string archive = basedir + "/" + string("BossArchive_") + strid + ".tgz";
   if ( sys->fileExist( archive ) ) {
@@ -144,6 +139,12 @@ int main(int argc, char** argv) {
   cout << "Files extracted from archive:" << archive << endl;
 #endif
 
+  // Read Boss database configuration
+  BossConfiguration* config=BossConfiguration::instance();
+
+  // Other parameters
+  string tmpdir = config->boss_tmp_dir();
+  
   // Create and fill the job instance
   BossJob* jobH = 0;
   string jobgenname = "./" + string("BossGeneralInfo_") + strid;
@@ -508,6 +509,7 @@ int main(int argc, char** argv) {
   //               =====================
   // clean-up
   sys->fileRemove(archive);
+  sys->fileRemove("BossConfig.clad");
   // Set stop and stat time
   jobH->setStopTime(sys->getTime());
   struct tms time_stat;

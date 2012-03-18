@@ -1,5 +1,5 @@
 #!/bin/sh
 
-boss registerScheduler -name lcg -submit dg_submit_conf.pl -query dg_query.pl -kill dg_kill.pl -default -topwdir NONE
+boss registerScheduler -name lcg -submit dg_submit.pl -query dg_query.pl -kill dg_kill.pl -default -topwdir NONE
 
 

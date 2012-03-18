@@ -8,7 +8,7 @@
 #include "CladLookup.hh"
 #include <iomanip>
 #include "Range.hh"
-
+#include "ContPrint.hh"
 
 QInfoTask::QInfoTask() : task_(0), minJob_(0), maxJob_(0), header_(true)  {};
 

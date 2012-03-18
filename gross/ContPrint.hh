@@ -14,6 +14,7 @@ ostream& operator<<(ostream& os, const vector<string>& myVec);
 ostream& operator<<(ostream& os, const vector<File*>& myVec);
 ostream& operator<<(ostream& os, const set<string>& myVec);
 ostream& operator<<(ostream& os, const set<File*>& myVec);
+ostream& operator<<(ostream& os, const vector<int>& myVec);
 
 
 #endif

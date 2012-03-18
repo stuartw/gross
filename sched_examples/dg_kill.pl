@@ -8,15 +8,16 @@ if($len==1) {
     $sid=$ARGV[0];
     $killcmd = "edg-job-cancel -noint $sid |";
     print LOG "\n====>> Kill request for job $sid\n";
+    print LOG "Killing with command $killcmd\n";
+    print LOG "*** Start dump of kill request:\n";
     open (KILL, $killcmd);
     while ( <KILL> ) {
 	print LOG;
-	if ( $_ =~ m/ The cancellation request has been successfully submitted/ ) {
+	if ( $_ =~ /\s+edg-job-cancel Success\s*/ ) {
 	    $status = "killed";
 	}
     }
+    print LOG "*** End dump of kill request:\n";
 }
 print LOG "Result of kill request is: $status\n";
 print "$status\n";
-
-

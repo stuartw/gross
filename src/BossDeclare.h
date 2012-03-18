@@ -12,7 +12,7 @@
 
 #include "BossCommand.h"
 
-class BossClassAd;
+#include "ClassAdLite.h"
 
 class BossDeclare : public BossCommand {
 public:
@@ -21,7 +21,7 @@ public:
   virtual int execute();
   virtual void printUsage() const ;
 private:
-  void parseClassAd(BossClassAd*);
+  void parseClassAd(CAL::ClassAdLite&, CAL::ClassAdLite&);
 };
 #endif
 

@@ -9,7 +9,7 @@
 #include <algorithm>
 #include "ContPrint.hh"
 
-Job::Job(const int myId, const int myDataSelect, Task* myTask) 
+Job::Job(const int myId, const vector<int> myDataSelect, Task* myTask) 
   : Id_(myId), dataSelect_(myDataSelect), task_(myTask), 
     wrapper_(0), jdl_(0), unInit_(true) {
 }
@@ -36,9 +36,12 @@ int Job::save() {
   }
   
   //Job Table
-  ostringstream myKeys, myValues;
+  ostringstream myKeys, myValues, runs;
+  for (int i=0;i<dataSelect().size();i++) {
+    runs << dataSelect()[i] << ",";
+  } 
   myKeys << "TaskID, JobID, DataSelect, ExecName, StdOut, StdErr, Suffix";
-  myValues << task_->Id() << "," << Id() << ",'" << dataSelect() << "','" << executable() << "','"
+  myValues << task_->Id() << "," << Id() << ",'" << runs.str() << "','" << executable() << "','"
 	   << stdOutFile() << "','" << stdErrFile() << "','" << uniqSuffix() <<"'";
   if(LocalDb::instance()->tableSave("Analy_Job", myKeys.str(), myValues.str())) return EXIT_FAILURE; 
   
@@ -72,4 +75,10 @@ void Job::print() const {
   cout << "Local Input Files = " << localInFiles() <<endl;
 }
 
+const string Job::wrapperName() const {
+  return wrapper_->execName();
+}
 
+const string Job::wrapperFullPathName() const {
+  return wrapper_->execNameFullHandle();
+}

@@ -3,6 +3,9 @@
 #include "LocalDb.hh"
 #include <sstream>
 #include <vector>
+#include "BossIf.hh"
+#include "TaskFactory.hh"
+#include "Task.hh"
 
 Delete::Delete() : Command() {
   opt_["-taskId"]="0";
@@ -51,7 +54,15 @@ int Delete::execute() {
   }
   cout <<endl;
   
-  //Perform deletion
+  TaskFactory::facType(getFacType(myTaskId)); //Initialise Factory type
+  Task* pTask=(TaskFactory::instance())->makeTask(myTaskId); //Create task
+  if(!pTask) return EXIT_FAILURE;  //check ptr exists
+  if(!*pTask) return EXIT_FAILURE; //check object was initialised ok
+  
+  //Load sub jobs
+  if(pTask->split()) return EXIT_FAILURE;
+  
+  //Perform deletion from DB
   if((sel.str()).empty()) return EXIT_FAILURE;
 
   //Standard tables

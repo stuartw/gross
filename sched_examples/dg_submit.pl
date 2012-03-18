@@ -24,7 +24,8 @@ if($len==4) {
     if ( $host ne "NULL" ) { 
 	$hoststring="-r $host";
     }
-    
+    $rbconfigstring ="";
+
     print LOG "\n====>> New scheduler call number $jid\n";
     print LOG "$jid: Submitting $executable $jid... on host $host\n";
     print LOG "$jid: Redirecting stderr & stdout to log file $logfile\n";    
@@ -49,8 +50,7 @@ if($len==4) {
 #    }
 
     $inSandBox  = "\"$ENV{BOSSDIR}/bin/$executable\",\"$myexec\"";
-    $inSandBox  .= ",\"BossGeneralInfo_$jid\",\"$ENV{BOSSDIR}/bin/dbUpdator\"";
-    $inSandBox .= ",\"BossArchive_$jid.tgz\"";
+    $inSandBox  .= ",\"BossArchive_$jid.tgz\",\"$ENV{BOSSDIR}/bin/dbUpdator\"";
     $outSandBox = "\"$logfile\",\"BossJournal_$jid.txt\"";
     
     if(!($mystdin  =~ m#/dev/null#)) { 
@@ -96,18 +96,26 @@ if($len==4) {
                 $ClAdVal =~ s/\s*{\s*\"\s*(.*)\s*\"\s*}\.*/$1/;
 #               print "$ClAdKey : $ClAdVal \n";                
                 chomp($ClAdVal);
-                $rbconfigstring="-config $ClAdVal";
+                $rbconfig="-config $ClAdVal";
 #               print "$rbconfigstring \n";
+
+#Added by Stuart
+	    } elsif ( $ClAdKey eq "RBconfigVO") {
+                $ClAdVal =~ s/\s*{\s*\"\s*(.*)\s*\"\s*}\.*/$1/;
+#               print "$ClAdKey : $ClAdVal \n";
+                chomp($ClAdVal);
+                $rbconfigVO="--config-vo $ClAdVal";
+#END added 
 
 	    } elsif ( $ClAdKey ne "" ) {
 #		print "Appending $_ to jdl file\n";
-		if ( $ClAdVal =~ m/{.*}/ ) {
-		    $_ =~ s/\s*(.+)/$1/;
-		    $ppend2JDL.=$_;
-		}
-		else { 
+#		if ( $ClAdVal =~ m/{.*}/ ) {
+#		    $_ =~ s/\s*(.+)/$1/;
+#		    $ppend2JDL.=$_;
+#		}
+#		else { 
 		    $ppend2JDL.="$ClAdKey = $ClAdVal;\n";
-		    } 
+#		    } 
 	    }
         }
         print LOG "End dump ClassAd file\n";
@@ -118,7 +126,7 @@ if($len==4) {
     chomp($tmpfile);
 
     open (JDL, ">$tmpfile") || die "error";
-    # Executable submit with dg-job-submit
+    # Executable submit with edg-job-submit
     print JDL ("Executable    = \"$executable\";\n");
     print JDL ("Arguments     = \"$jid $dir $topwdir localIO\";\n");
     # input,output,error files passed to executable
@@ -131,16 +139,16 @@ if($len==4) {
     close(JDL);
 
     # submitting command
-    $subcmd = "dg-job-submit -o ~/.bossEDGjobs $hoststring $rbconfigstring $tmpfile|";
-#    print "subcmd = $subcmd\n";
+    $subcmd = "edg-job-submit -o ~/.bossEDGjobs $hoststring $rbconfig $rbconfigVO $tmpfile|";
+    print LOG "subcmd = $subcmd\n";
 
 #    exit;
 
-    # open a pipe to read the stdout of dg-job-submit
+    # open a pipe to read the stdout of edg-job-submit
     open (SUB, $subcmd);
     $id = "error";
     while ( <SUB> ) {
-#        print LOG;
+        print LOG;
 	if ( $_ =~ m/https:(.+)/) {
 	    print LOG "$jid: Scheduler ID = https:$1\n";
 	    $id = "https:$1";
@@ -169,9 +177,9 @@ if($len==4) {
     # close the file handles
     close(SUB);
     # delete temporary files
-    unlink "$tmpfile";
-    unlink "BossGeneralInfo_${jid}";
-    unlink "BossArchive_${jid}.tgz";
+    #unlink "$tmpfile";
+    #unlink "BossGeneralInfo_${jid}";
+    #unlink "BossArchive_${jid}.tgz";
 } else {
     print LOG "$jid:ERROR: Wrong number of arguments, use executable job_id log_file\n";
     print "error";
@@ -180,6 +188,7 @@ close(LOG);
 
 sub bossSQL {
     $query = "boss SQL -query \"$_[0]\" |";
+#    print LOG "bossSQL executing $query\n";
     open(SQL,$query); $fields=<SQL>; $head=<SQL>; $line=<SQL>; close(SQL);
     my @nn = split(",",$fields);
     my $N = $nn[0];
@@ -190,15 +199,18 @@ sub bossSQL {
 	my $key = substr($head,$offs,$nn[$i]); $key =~ s/\s+$//;
 	my $val = substr($line,$offs,$nn[$i]); $val =~ s/\s+$//;
 	$sqlVal{$key} = $val ;
+#	print LOG "bossSQL returning $sqlVal{$key} = $val \n ";
     }
 }
 
 sub absPath {
+#    print LOG "absPath called with arguments $_[0] $_[1] \n ";
     my $rf = $_[1];
     $rf =~ s/^.\///;
     if ( (!($rf =~ m#/dev/null#)) && (substr($rf ,0,1) ne "/")  ) {
 	   $rf = $_[0]."/".$rf;
     }
+#    print LOG "absPath returned $rf\n ";
     return $rf;
 }
 

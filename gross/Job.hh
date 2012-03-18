@@ -31,7 +31,7 @@ class Task;
 
 class Job {
 public:
-  Job(const int anId, const int aDataSelect, Task* aTask); ///<dataSelect is int at the moment as it is just a run num.
+  Job(const int anId, const vector<int> aDataSelect, Task* aTask); ///<dataSelect is int at the moment as it is just a run num.
   virtual ~Job() = 0; ///<pABC
   virtual int makeSubFiles() = 0; ///<create local submission files
   virtual int save() = 0;
@@ -51,22 +51,24 @@ public:
   bool operator!() {if(unInit_) cerr <<"Job::operator!() Error: job initialisation failure!\n"; return unInit_;}
 
   //Getters
-  const int& dataSelect() const {return dataSelect_;}
+  const vector <int>& dataSelect() const {return dataSelect_;}
   const int& Id() const {return Id_;}
   const string& executable() const {return executable_;}
   const string& uniqSuffix() const {return uniqSuffix_;}
   const string& stdOutFile() const {return stdOutFile_;}
   const string& stdErrFile() const {return stdErrFile_;}
+  const string wrapperName() const;
+  const string wrapperFullPathName() const;
   const set<File*>& localInFiles() const {return vLocalInFiles_;}
   const set<File*>& localWrapFiles() const {return vLocalWrapFiles_;}
-  const JDL* jdl() const {return jdl_;}
+  const JDL* jdl() const {return jdl_;}  
   
   virtual void print() const;
 
 protected:
   //Data members (and they're not private... ug!)
   const int Id_;
-  const int dataSelect_;
+  const vector<int> dataSelect_;
   Task* task_;
   Wrapper* wrapper_;
   JDL* jdl_;

@@ -9,10 +9,11 @@
 #include "File.hh"
 #include "CladLookup.hh"
 #include "TaskFactory.hh"
+#include "ContPrint.hh"
 
 #include "PhysCat.hh"
 
-NewOrcaGJob::NewOrcaGJob(const int anId, const int aDataSelect, Task* aTask) : 
+NewOrcaGJob::NewOrcaGJob(const int anId, const vector<int> aDataSelect, Task* aTask) : 
   OrcaGJob(anId, aDataSelect, aTask), myNewOrcaTask_(0) {
   unInit_=true;
   
@@ -82,7 +83,11 @@ File* NewOrcaGJob::setXMLFrag() {
   string xMLFragName = FileSys::oDir() + string("/") + string("XMLFrag.xml")+ uniqSuffix();
   if(Log::level()>2) cout <<"NewOrcaGJob::setXMLFrag() Creating XMLFrag with name " << xMLFragName<<endl;
   ostringstream myQuery;
-  myQuery<<"runid="<<dataSelect_;
+  myQuery<<"DataType = 'META' OR runid=";
+  for (int i=0;i<dataSelect_.size();i++) {
+    if (i<(dataSelect().size()-1)) myQuery<<dataSelect()[i]<<" OR runid=";
+    else myQuery<<dataSelect_[i];
+  }
   pXMLFragFile_ = (myNewOrcaTask_->physCat())->xMLFrag(myQuery.str(), xMLFragName);
   if(!pXMLFragFile_) return 0;
 
@@ -160,12 +165,15 @@ int NewOrcaGJob::setLocalInFiles(){
     vLocalInFiles_.insert(new File(*it));
   }    
   //don't forget user executable is local infile too!
-  const string sF = (task_->userSpec())->read("Executable");  
+  const string sF = (task_->userSpec())->read("Executable"); 
+  const string sSCRAM = (task_->userSpec())->read("SCRAMBuildEXE"); 
+  const string sREMOTE = (task_->userSpec())->read("RemoteEXE");
   if(sF.empty()) {
     cerr <<"NewOrcaGJob::setLocalInFiles() Error Executable name not defined in JDL"<<endl;
     return EXIT_FAILURE;
   }
-  vLocalInFiles_.insert(new File(sF));
+  //dont make executable an input file if already on remote machine or if it is to be built via SCRAM on node
+  if(!(sREMOTE=="true" || sSCRAM=="true"))  vLocalInFiles_.insert(new File(sF));
 
   return EXIT_SUCCESS;
 }
@@ -191,15 +199,23 @@ int NewOrcaGJob::setOutSandboxFiles(){
   return EXIT_SUCCESS;
 }
 int NewOrcaGJob::setOutGUIDs(){
-  //Set Output File GUIDs
-  //..nothing as yet. Only OutSandboxFiles catered for.
-  // Space here for where user *knows* name of output files to be registered remotely (ie not part of output sandbox)
+  vector<string> vS;
+  (task_->userSpec())->read("OutputFileLFN", vS); //No need to check if defined or not - optional parameter
+  for(vector<string>::const_iterator it = vS.begin(); it!=vS.end(); it++) {
+    if(Log::level()>2) cout << "NewOrcaGJob::setOutGUIDs() reading output file name:" << (*it) << endl;
+    vOutGUIDs_.insert(*it);
+}
+      
   return EXIT_SUCCESS;
 }
 int NewOrcaGJob::setInGUIDs(){
   //Set Input Data Files from Phys Cat
   ostringstream myQuery;
-  myQuery<<"runid="<<dataSelect_;
+  myQuery <<"runid=";
+  for (int i=0;i<dataSelect().size();i++) {
+    if (i<(dataSelect().size()-1)) myQuery<<dataSelect()[i]<<" OR runid=";
+    else myQuery<<dataSelect_[i];
+  } 
   if(!myNewOrcaTask_->physCat()) {
     cerr<<"NewOrcaGJob::setInGUIDs Error! Task does not have PhysCat set!"<<endl;
     return EXIT_FAILURE;
@@ -210,15 +226,16 @@ int NewOrcaGJob::setInGUIDs(){
     vInGUIDs_.insert(*i);
   }
 
+  
   //Set Input Meta Data File from Phys Cat
-  string query("DataType='ZippedMETA'");
+  string query("DataType='META'");
   const vector<string> tmp = (myNewOrcaTask_->physCat())->listLFNs(query);
-  if(tmp.size()!=1) {
+  if(tmp.size()==0) {
     cerr << "NewOrcaGJob::setInGUIDs Error: Meta Data File not found in catalog!"<<tmp.size() << endl;
-    return EXIT_FAILURE;
+    return EXIT_SUCCESS;
   }
   for(vector<string>::const_iterator it = tmp.begin(); it!=tmp.end(); ++it) 
-    metaFile_=(*it);
+    vmetaFile_.insert(*it);
 
   return EXIT_SUCCESS;
 }

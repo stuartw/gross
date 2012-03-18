@@ -206,6 +206,12 @@ BossOperatingSystem::fileRemove(string fname) {
 }
 
 int
+BossOperatingSystem::dirRemove(string dname) {
+
+  return system(string("rm -rf "+dname).c_str());
+}
+
+int
 BossOperatingSystem::fileChmod(string mode, string dst) {
 
   return system(string("chmod "+mode+" "+dst).c_str());

@@ -30,11 +30,7 @@ int TaskOutput::init(int myTaskId, int minJobId /*=0*/, int maxJobId /*=0*/) {
 
   minJob_=minJobId;
   maxJob_=maxJobId;
-
-  //Set concrete factory type
-  //THIS IS STILL TO BE DONE!!!
-  TaskFactory::facType("OrcaG");
-
+  
   //Create and initialise task
   task_=(TaskFactory::instance())->makeTask(myTaskId);
   if(!task_) return EXIT_FAILURE; //check ptr not empty

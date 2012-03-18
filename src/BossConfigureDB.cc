@@ -127,7 +127,8 @@ int BossConfigureDB::execute() {
   f<< "CREATE TABLE IF NOT EXISTS Analy_Task (" << endl;
   f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY," <<endl;
   f<< "UserSpec MEDIUMBLOB NOT NULL DEFAULT \"\"," <<endl;
-  f<< "JDLRem MEDIUMBLOB NOT NULL DEFAULT \"\"" <<endl;
+  f<< "JDLRem MEDIUMBLOB NOT NULL DEFAULT \"\"," <<endl;
+  f<< "FacType VARCHAR(30) NOT NULL DEFAULT \"\""<<endl;
   f<< ");" <<endl;
   
   //Analy_Job
@@ -143,12 +144,22 @@ int BossConfigureDB::execute() {
   f<< "Suffix VARCHAR(255),"<<endl;
   f<< "XMLFrag MEDIUMBLOB DEFAULT \"\","<<endl;
   f<< "SboxDir VARCHAR(255),"<<endl;
-  f<< "MetaFile VARCHAR(255)"<<endl;
+  f<< "MetaFile VARCHAR(255),"<<endl;
+  f<< "outDir VARCHAR(255),"<<endl;
+  f<< "runsPerJob INT"<<endl;
   f<< ");"<<endl;
 
   //Analy_InGUIDs
   f<< "CREATE TABLE IF NOT EXISTS Analy_InGUIDs ("<<endl;
   f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
+  f<< "TaskID INT,"<<endl;
+  f<< "JobID INT,"<<endl;
+  f<< "Name VARCHAR(255)"<<endl;
+  f<< ");"<<endl;
+  
+  //Analy_MetaFiles
+  f<< "CREATE TABLE IF NOT EXISTS Analy_InMETAs ("<<endl;
+  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl; 
   f<< "TaskID INT,"<<endl;
   f<< "JobID INT,"<<endl;
   f<< "Name VARCHAR(255)"<<endl;
@@ -184,6 +195,21 @@ int BossConfigureDB::execute() {
   f<< "script MEDIUMBLOB NOT NULL DEFAULT \"\""<<endl;
   f<< ");"<<endl;
 
+  //AnalyLoc_InFiles
+  f<< "CREATE TABLE IF NOT EXISTS AnalyLoc_InFiles ("<<endl;
+  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
+  f<< "TaskID INT,"<<endl;
+  f<< "JobID INT,"<<endl;
+  f<< "Name VARCHAR(255)"<<endl;
+  f<< ");"<<endl;
+	  
+  //AnalyLoc_OutFiles
+  f<< "CREATE TABLE IF NOT EXISTS AnalyLoc_OutFiles ("<<endl;
+  f<< "ID INT AUTO_INCREMENT NOT NULL PRIMARY KEY,"<<endl;
+  f<< "TaskID INT,"<<endl;
+  f<< "JobID INT,"<<endl;
+  f<< "Name VARCHAR(255)"<<endl;
+  f<< ");"<<endl;
 
   // flush privileges
   f << "FLUSH PRIVILEGES;" << endl;

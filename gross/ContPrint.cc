@@ -16,7 +16,7 @@ ostream& operator<<(ostream& os, const vector<File*>& myVec) {
 }
 ostream& operator<<(ostream& os, const set<string>& myVec) {
   for(set<string>::const_iterator it=myVec.begin(); it!=myVec.end();it++)
-    os<<(*it)<<" ";
+    os<<(*it)<</*" "*/endl;
   return os;
 }
 ostream& operator<<(ostream& os, const set<File*>& myVec) {
@@ -24,6 +24,10 @@ ostream& operator<<(ostream& os, const set<File*>& myVec) {
     os<<(*it)->fullHandle()<<" ";
   return os;
 }
-
+ostream& operator<<(ostream& os, const vector<int>& myVec) {
+	  for(vector<int>::const_iterator it=myVec.begin(); it!=myVec.end();it++)
+		      os<<(*it)<<" ";
+	    return os;
+}
 
 #endif

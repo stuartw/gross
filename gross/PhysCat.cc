@@ -2,6 +2,8 @@
 
 #include "RLSquery.hh"
 #include "FileSys.hh"
+#include "TaskFactory.hh"
+#include "RefDBquery.hh"
 
 PhysCat::~PhysCat() {
   if(localRLSFrag_) delete localRLSFrag_;
@@ -13,12 +15,35 @@ int PhysCat::init(const string& myRLSCat, const string& myGenQuery) {
   RLSquery remoteRLS;
   //  if(remoteRLS.initRLSCatalog(myRLSCat)) return EXIT_FAILURE;
   if(remoteRLS.init(myRLSCat)) return EXIT_FAILURE;  
-
-  //Prepare dummy local RLS
   localRLSFrag_ = new File(FileSys::oDir(), "temp_RLSFrag.xml");
-  if(localRLSFrag_->remove()) return EXIT_FAILURE; //Must not exist else RLSQuery will fail 
-  if(remoteRLS.publishLocalCatalog(*localRLSFrag_, myGenQuery, true)) return EXIT_FAILURE;
+  if(localRLSFrag_->remove()) return EXIT_FAILURE; //Must not exist else RLSQuery will fail
 
+  query=myGenQuery; 
+
+  /***  START OF FACTORY SPECIFC CODE ***/
+  //if Grid job contact RefDB to get metadata
+    if (TaskFactory::facType() == "OrcaG") {
+      RefDBquery refdb;
+ 
+      //connect to refdb and get POOL catalog
+      if (refdb.init(*localRLSFrag_, query, true)) {
+        cerr << "PhysCat::init: Error contacting RefDB"<<endl;
+        return EXIT_FAILURE;
+      }
+  
+    }//end if Grid job
+
+    //If Local job
+    if (TaskFactory::facType() == "OrcaLoc") {
+      query=query+" OR DataType='META' OR pfname='PersilCatalogInit'";
+    }//end if local job
+  /*** END OF FACTORY SPECIFIC CODE ***/
+
+
+  //Prepare local Pool copy, with meta data, from refDB or original cat, create metadata spec if doesn't already exist
+  if(remoteRLS.publishLocalCatalog(*localRLSFrag_, query, !(localRLSFrag_)->exists())) return EXIT_FAILURE;
+
+  
   //Connect to local fragment
   localRLSQuery_ = new RLSquery;
   if(localRLSQuery_->initLocalCatalog(*localRLSFrag_)) return EXIT_FAILURE;
@@ -74,4 +99,16 @@ File* PhysCat::xMLFrag(const string& myDataQuery, string aFileName) {
   }
     
   return pFile;
+}
+
+int PhysCat::setDatasetOwner(const string query) {
+  int first =query.find("\'",query.find("dataset="))+1;
+  int second=query.find("\'",first);
+  dataset=query.substr(first,second-first);
+  first =query.find("\'",query.find("owner="))+1;
+  second=query.find("\'",first);
+  owner=query.substr(first,second-first);
+
+  if (dataset.empty()&&owner.empty()) return EXIT_FAILURE;
+    return EXIT_SUCCESS;
 }

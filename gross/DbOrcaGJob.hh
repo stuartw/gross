@@ -7,7 +7,7 @@ class Task;
 
 class DbOrcaGJob : public OrcaGJob {
 public:
-  DbOrcaGJob(const int anId, const int aDataSelect, Task* aTask); //dataSelect is int at the moment as it is just a run num.
+  DbOrcaGJob(const int anId, const vector<int> aDataSelect, Task* aTask); //dataSelect is int at the moment as it is just a run num.
   virtual int makeSubFiles();
   int save();
 

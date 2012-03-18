@@ -6,7 +6,6 @@
 #include <sstream>
 #include "FileCatalog/IFileCatalog.h"
 #include "FileCatalog/FCSystemTools.h"
-//#include "FileCatalog/IFCAction.h"
 #include "FileCatalog/FCEntry.h"
 #include "FileCatalog/URIParser.h"
 #include "FileCatalog/IFCAction.h"
@@ -15,8 +14,6 @@
 #include "Log.hh"
 #include <list>
 
-//using std::string;
-//using std::vector;
 
 class RLSquery{
 public:
