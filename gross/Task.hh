@@ -4,91 +4,86 @@
 
 class Job;
 class CladLookup;
-class PhysCat;
-class File;
 
 /*!
-  \brief pABC that represents an analysis Task 
+  \brief pABC that represents an analysis task 
   
   A user submits to GROSS a single, unique analysis task.
-  This task will consist of a certain set of user requirements which are defined in a CladLookup object 
-  and a set of job objects. The Task class's responsibility is to create and initialise the Job objects.
-  In addition, it must be able to save itself (and delete) to a database.
+  This task will consist of a certain set of user requirements which are defined in a CladLookup object. 
+  Task's responsibility is to carry out job splitting - creating and initialising the resultant 
+  Job objects, creating any necessary local files ready for submission and saving itself (and its
+  daughter Job objects).
   
-  Task is currently sub-classed into DbTask and NewTask families. 
-  It is expected that in the future further sub-classing, down the inheritance tree from these two sub-classes,
-  will be implemented to define different methods of job splitting and job initialisation.
+  See UML diagram for inheritance structure class diagram. This pABC determines interface for a generic
+  task. The next level down in the inheritance structure represents whether the object is to be created
+  from a new user specification or from the database. The important difference between these two sub-classes
+  is that job splitting for a new task will (most likely) involve communicating with a data catalogue of some
+  sort, whereas for a Task already made persistent on a database, this (potentially time consuming and time
+  dependent) activity will have already been completed. Further sub-classing below this is done for the 
+  actual concrete task implementation specific for a particular job type.
 
-  \todo instead of having aType (Job type) passed around, have this as a Task parameter (or Job parameter on creation of Job).
-  It's a pain to have to pass it round as an argument all the time - it's just another parameter really.
-  \todo Get rid of queryJobs() and replace with a new Query object which will handle all query functionality.
-
+  Note on design: as you go down the inheritance tree, sub-classes obtain additional attributes and 
+  behaviour. These are defined at the first level in which they are appropriate. So a PhysCat object
+  is appropriate only for any new Orca type of task (NewOrca) and will only be defined and initialised 
+  within the NewOrca sub-class - furthermore, the getter for this attribute will only be defined for this
+  sub-class. This extends the generic Task interface defined here.
 */
+
 class Task {
 public:
-  Task(); ///< Ctor sets default parameters.
-  virtual ~Task() = 0; ///< Virtual dtor as pABC
-  /*! 
-    \brief Initialisation method
-    
-    Initialisation of Task separated from ctor, to enable safe error handling (particularly
-    as initialisation involves reading from a file).
-    
-    Initialisation of Task will cover creation of CladLookup object and setting of some data members.
+  Task(); ///< Base class ctor just initialises own variables to sensible values.
+  virtual ~Task() = 0; ///< pABC
 
-    One of the following parameters or the other is required for initialisation (never both).
-    Note that cannot overload this with two functions each with single type argument, 
-    as derived classes override it.
-
-    \param userCladFile is a pointer to the user specification ClassAd file
-    \param anId is the Task Id.
-
-    \todo see if you can set up defaults for the arguments to init() to make this overloaded call less messy.
-  */
-  virtual int init(const File* userCladFile, const int& anId) = 0;
   /*!
-    \brief Job splitting method
-
-    \param aType is the Job type to be created
+    \brief Check initialisation of object has been completed successfully.
+    
+    Client classes must check that ctor succeeded using this method. This is required
+    as the derived class ctors may well fail - eg they might contact remote DBs. 
+    For this to work, derived class ctors must set unInit_ to false after their ctor
+    has successfully initialised the derived object. Note that derived classes of derived classes 
+    must set the flag to false themselves at the beginning of their ctor and then to true once their ctor
+    has successfully completed.
+    Exceptions could also be used here, but this is easiest for the moment.
   */
-  virtual int prepareJobs(const string& aType) = 0; ///< Job splitting method
+  bool operator!() {if(unInit_) cerr <<"Task::operator!() Error: task initialisation failure!\n"; return unInit_;}
+
+  virtual int split() = 0; ///< %Job splitting method
+
+  /*!
+    \brief Creates submission files for jobs
+
+    This method will create all submission files that are required for each daughter job
+    and (if appropriate) for the Task itself.
+    This will include, for example, the Wrapper script steering file and a JDL file
+    to drive the BOSS submission process.
+    
+    \retval 0 if save failed
+    \retval >0 Id of Task on database (Note Id_ is set to this once Task is saved)
+    
+  */
+  virtual int makeSubFiles() = 0;
+
+
   /*!
     \brief Saves Task and its Job objects to the database
     
-    For consistency, both Task and Jobs are saved at the same time with this method. 
+    For consistency, both Task and its daughter jobs are saved at the same time with this method.
     Thus jobs must be created first otherwise the save will return an error.
     
     \retval 0 if save failed
     \retval >0 Id of Task on database (Note Id_ is set to this once Task is saved)
 
-    \todo for neatness and consistency, have a saveTask protected member function (like saveJobs).
-    This would decouple the two in a nice way in case of future changes (eg overriding of either function).
    */
   virtual int save() = 0;
 
-  /*!
-    \brief Should only be called for DbTask class 
-    
-    Provides minimal task and job initialisation, sufficient for a query to be carried out (no files are created)
-  */
-  virtual int queryPrepareJobs(); //Should only be called for DbTask class
 
-  /*!
-    \brief Getter for Task Id
-  */
-  const int Id() const {return Id_;};
-  /*!
-    \brief Getter for Task's CladLookup
-  */
-  CladLookup* userSpec() const {return userSpec_;};
-  /*!
-    \brief Getter for PhysCat 
-  */
-  PhysCat* physCat() const {return physCat_;};
-  /*! 
-    \brief Getter for vector of Task's Job objects
-  */
-  const vector<Job*>* jobs() const {return &jobs_;};
+  const int Id() const {return Id_;} ///<Getter
+
+  CladLookup* userSpec() const {return userSpec_;} ///<Getter
+
+
+  const vector<Job*>* jobs() const {return &jobs_;} ///<Getter 
+
   /*!
     \brief Getter for single Job from Task
     
@@ -98,7 +93,7 @@ public:
     
     \warning no error message printed should null pointer be returned - client must test for empty pointer.
   */
-  const Job* job(int anId); //Single job in task with Id given by client //Test for empty pointer returned in case of error (with no error msg)
+  const Job* job(int anId);
 
 protected:
   /*!
@@ -108,43 +103,26 @@ protected:
   */
   vector<Job*> jobs_;
 
-  /*!
-    \brief Setter for CladLookup object
-    
-    Use this setter rather than allowing inheritance of base class data members
-   */
-  void userSpec(CladLookup* myUserSpec) {userSpec_=myUserSpec;};
-  /*!
-    \brief Setter for Task Id
-    
-    Use this setter rather than allowing inheritance of base class data members
-   */
-  void Id(int myId) {Id_=myId;};
-  /*!
-    \brief Setter for PhysCat
-  */
-  void physCat(PhysCat* myPhysCat) {physCat_=myPhysCat;};
-  /*!
-    \brief Setter for User Specification Clad
-  */
-  void userClad(string myUserClad) {userClad_=myUserClad;};
-  /*!
-    \brief Getter for User Specification Clad
-  */
-  const string userClad() const {return userClad_;};
+  void userSpec(CladLookup* myUserSpec) {userSpec_=myUserSpec;} ///<Setter
 
-  /*! 
-    \brief Creates all submission files
-  */
-  virtual int createSubFiles(const string& aType);
+  void Id(int myId) {Id_=myId;} ///<Setter
+
+  void userClad(string myUserClad) {userClad_=myUserClad;} ///<Setter
+
+  const string userClad() const {return userClad_;} ///<Setter
+
   /*!
-    \brief  Saves Job objects
+    \brief Save jobs method
+
+    Implementation in Base class rather than derived classes, as will be same for most derived classes.
   */
-  virtual int saveJobs() = 0;
+  virtual int saveJobs()=0;
+
+  bool unInit_; ///<For use with operator!()
+
 private:
   CladLookup* userSpec_;
   int Id_;
-  PhysCat* physCat_;
   string userClad_;
 
   Task(const Task&); ///< No implementation

@@ -7,13 +7,12 @@ class File;
 
 class NewTask : public Task {
 public:
-  virtual int init(const File* userCladFile, const int& anId);
-  virtual int prepareJobs(const string& aType);
-  virtual int save();
+  NewTask(const File* userCladFile); ///<New Task always constructed from File
+  virtual ~NewTask()=0; ///<pABC 
+  int split() =0; ///<No standard split method for new tasks - defined in derived classes
+  int makeSubFiles(); 
+  int save();
 protected:
-  virtual int createJobs();
-  virtual int initJobs();
-  virtual int createSubFiles(const string& aType);
   virtual int saveJobs();
 };
 

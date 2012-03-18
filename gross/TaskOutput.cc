@@ -31,12 +31,15 @@ int TaskOutput::init(int myTaskId, int minJobId /*=0*/, int maxJobId /*=0*/) {
   minJob_=minJobId;
   maxJob_=maxJobId;
 
+  //Set concrete factory type
+  //THIS IS STILL TO BE DONE!!!
+  TaskFactory::facType("OrcaG");
+
   //Create and initialise task
   task_=(TaskFactory::instance())->makeTask(myTaskId);
-  if(!task_) return EXIT_FAILURE;
-  File nullFile("NULL");
-  if(task_->init(&nullFile, myTaskId)) return EXIT_FAILURE;
-  if(task_->queryPrepareJobs()) return EXIT_FAILURE;
+  if(!task_) return EXIT_FAILURE; //check ptr not empty
+  if(!*task_) return EXIT_FAILURE; //check object initialised ok
+  if(task_->split()) return EXIT_FAILURE;
 
   //Create Jobs vector for subrange of required jobs
   copy((task_->jobs())->begin(), (task_->jobs())->end(), back_inserter(allJobs_)); //Make a copy of all jobs for task
@@ -116,7 +119,7 @@ string TaskOutput::getGridSbox(Job* pJob, string oDir /* ="./" */) const {
   if(sboxDir.empty()) return "";
 		  
   //Save result to Db
-  this->saveSboxDir(pJob, sboxDir);
+  saveSboxDir(pJob, sboxDir);
   return sboxDir;
 }
 string TaskOutput::getDbSbox(Job* pJob) const{
@@ -143,7 +146,7 @@ int TaskOutput::saveSboxDir(Job* pJob, string sboxDir) const {
     return EXIT_FAILURE;
   }
   ostringstream select;
-  select<<"TaskID="<<this->task_->Id()<<"&&JobID="<<pJob->Id();
+  select<<"TaskID="<<task_->Id()<<"&&JobID="<<pJob->Id();
   string convS = LocalDb::instance()->escapeString(sboxDir);
   if(convS.empty()) return EXIT_FAILURE;
   if(LocalDb::instance()->tableUpdate("Analy_Job", "SboxDir", convS, select.str())) 

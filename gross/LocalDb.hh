@@ -15,7 +15,7 @@ class DbSpec;
   It is implemented as a singleton to ensure only a single connection is opened to the database, 
   and to ensure global visibility for all client classes.
   
-  \todo Make a base class for a generic MySQL database connection and then have derived singleton
+  \todo Make a base class for a generic MySQL database connection and then have derived
   classes for LocalDb, GroupDb, RefDb, etc.
   \todo Make public member function names more appropriate (eg tableRead->colRead, etc).
 */

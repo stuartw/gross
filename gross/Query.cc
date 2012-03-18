@@ -5,6 +5,7 @@
 #include <sstream>
 #include "LocalDb.hh"
 #include "Range.hh"
+#include "TaskFactory.hh"
 
 Query::Query() : Command() {
   opt_["-taskId"] = "0";
@@ -53,10 +54,8 @@ int Query::execute() {
   //Initialise Db
   if(initDb()) return EXIT_FAILURE;
   
-
   //Fill task vector up with task IDs to be processed
-  if(opt_["-allTasks"]=="TRUE")
-    this->allTasks();
+  if(opt_["-allTasks"]=="TRUE") allTasks();
 
   if(opt_["-taskId"]!="0") {
     std::istringstream is(opt_["-taskId"]);
@@ -69,12 +68,15 @@ int Query::execute() {
 
   bool first=true;
   for(vector<int>::const_iterator it=taskIds_.begin(); it!=taskIds_.end(); ++it) {
+
+    //Initialise factory appropriately for this task 
+    TaskFactory::del(); //ensure last concrete factory instance is deleted.
+    TaskFactory::facType(getFacType(*it)); //set concrete factory type
     
     //Create QInfoTask object for particular task/jobs required
-    
     Range jobRange(opt_["-jobId"]);
     
-    QInfoTask myQInfoTask;
+    QInfoTask myQInfoTask; //create local v'ble so it will get deleted at end of scope.
     if(opt_["-noHead"] =="TRUE"||!first) myQInfoTask.header(false);
     if(myQInfoTask.init(*it, jobRange.min(), jobRange.max())) continue;
     

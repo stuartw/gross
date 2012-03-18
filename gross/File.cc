@@ -45,33 +45,33 @@ const string File::fullHandle() const{
 int File::exists() const {
   int ret = 0;
   struct stat buf;
-  if ( stat((string(this->fullHandle())).c_str(),&buf) == 0 )
+  if ( stat((string(fullHandle())).c_str(),&buf) == 0 )
     ret = 1;
   return ret;
 }
 const string File::contents() const {
   string rval = "";
-  if(!this->exists()) {
+  if(!exists()) {
     cerr << "File::contents(): Error: Cannot find file"<< endl;
     return rval;
   }
-  ifstream in(this->fullHandle().c_str());
+  ifstream in(fullHandle().c_str());
   string line;
   while(getline(in, line))
     rval+= line + "\n";
   return rval;
 }
 int File::save(string myString) const {
-  ofstream out(this->fullHandle().c_str());
+  ofstream out(fullHandle().c_str());
   if(!out) {
-    cerr<<"File::save() Error in creating file "<<this->fullHandle()<<endl;
+    cerr<<"File::save() Error in creating file "<<fullHandle()<<endl;
     return EXIT_FAILURE;
   }
   out<<myString;
   return EXIT_SUCCESS;
 }
 int File::makeExec() const {
-  string myString =string("chmod +x")+string(" ")+(this->fullHandle());
+  string myString =string("chmod +x")+string(" ")+(fullHandle());
   if(system(myString.c_str())) {
     cerr<<"File::makeExec() Error changing file to executable mode"<<endl;
     return EXIT_FAILURE;
@@ -79,8 +79,8 @@ int File::makeExec() const {
   return EXIT_SUCCESS;
 }
 int File::remove() const {
-  if(system(string("rm -f "+this->fullHandle()).c_str())) {
-    cerr<<"File::remove() Error removing file named " << this->fullHandle()<<endl;
+  if(system(string("rm -f "+fullHandle()).c_str())) {
+    cerr<<"File::remove() Error removing file named " << fullHandle()<<endl;
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;

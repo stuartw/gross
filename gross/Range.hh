@@ -5,6 +5,11 @@
 
 class Job;
 
+/*!
+  \brief Helper class to define a range of numbers
+
+*/
+
 class Range {
 public:
   Range(string sIn, string sep_="-");
@@ -21,7 +26,7 @@ private:
 class JobRange : public Range {
 public:
   JobRange(int minJob, int maxJob) : Range(minJob, maxJob) {};
-  bool operator()(Job* pJob) const; //Functor for getting subrange of jobs
+  bool operator()(Job* pJob) const; ///<Functor for getting subrange of jobs
 };
 
 

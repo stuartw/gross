@@ -1,33 +1,18 @@
 #include "Task.hh"
-#include "CladLookup.hh"
-#include "PhysCat.hh"
 #include "Job.hh"
-#include "BossIf.hh"
-#include "File.hh"
 #include "LocalDb.hh"
 #include "DeletePtr.hh"
 #include <algorithm>
+#include "CladLookup.hh"
 
-Task::Task() : userSpec_(0), physCat_(0), Id_(0){
-}
+Task::Task() : userSpec_(0), Id_(0), userClad_(""), unInit_(true) {}
+
 Task::~Task(){
   if(userSpec_) delete userSpec_;
-  if(physCat_) delete physCat_;
-  jobs_.erase(remove_if(jobs_.begin(), jobs_.end(), deletePtr<Job>), jobs_.end());  
-  //DOES NOT WORK - CAN'T TAKE DTOR ADDRESS for_each(jobs_.begin(), jobs_.end(), std::mem_fun(&Job::~Job));
+  //delete container of pointers to Jobs:
+  jobs_.erase(remove_if(jobs_.begin(), jobs_.end(), deletePtr<Job>), jobs_.end());
 }
-int Task::createSubFiles(const string& myType){
-  if(jobs_.empty()) {
-    cerr<<"Task::createSubFiles() Error: no jobs defined"<<endl;
-    return EXIT_FAILURE;
-  }
 
-  for(vector<Job*>::const_iterator i = jobs_.begin(); i!=jobs_.end(); i++) {
-    if(Log::level()>2) cout <<"Task::createSubFiles() Creating submission files for job with id " << (*i)->Id() <<endl;
-    if((*i)->createSubFiles(myType)) return EXIT_FAILURE;
-  }
-  return EXIT_SUCCESS;
-}
 int Task::saveJobs() {
   if(jobs_.empty()) {
     cerr<<"Task::saveJobs() Error: no jobs defined"<<endl;
@@ -66,9 +51,10 @@ int Task::save(){
   Id_ = mysql_insert_id(LocalDb::instance()->connection());
   if(Log::level()>0) cout << "Task::save(): Saving Task user spec into DB with ID "<< Id_<<endl;
 
-  if(this->saveJobs()) return 0; //Done here to ensure jobs and task both saved together for consistency
+  if(saveJobs()) return 0; //Done here to ensure jobs and task both saved together for consistency
   return Id_;
 }
+
 const Job* Task::job(int myJobId) {
   Job* pJob = 0;
   if(jobs_.empty()) {
@@ -80,8 +66,16 @@ const Job* Task::job(int myJobId) {
     if((*i)->Id()==myJobId) pJob = *i;
   return pJob;  
 }
-int Task::queryPrepareJobs() {
-  cout <<"Task::queryPrepareJobs() ERROR: No status info - can only query jobs saved to Db"<<endl;
-  return EXIT_FAILURE;
-}
 
+int Task::makeSubFiles(){
+  if(jobs_.empty()) {
+    cerr<<"Task::makeSubFiles() Error: no jobs defined"<<endl;
+    return EXIT_FAILURE;
+  }
+
+  for(vector<Job*>::const_iterator i = jobs_.begin(); i!=jobs_.end(); i++) {
+    if(Log::level()>2) cout <<"Task::makeSubFiles() Creating submission files for job with id " << (*i)->Id() <<endl;
+    if((*i)->makeSubFiles()) return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
+}

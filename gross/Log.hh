@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <set>
 #include <sstream>
 using std::ostringstream;
 using std::ostream;
@@ -14,6 +15,7 @@ using std::cerr;
 using std::endl;
 using std::string;
 using std::vector;
+using std::set;
 
 class Log{
 private:

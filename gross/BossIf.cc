@@ -60,11 +60,11 @@ int BossIf::submitJob(const string mySched, const string myBossJobType, const Jo
 
   //Now save this submitted job
   if(Log::level()>2) cout <<"BossIf::submitJob() Saving BossId to DB" <<endl;
-  if(this->saveId(pTask_->Id(), pJob->Id(), bossId)) return EXIT_FAILURE;
+  if(saveId(pTask_->Id(), pJob->Id(), bossId)) return EXIT_FAILURE;
 
   cout <<"Job with GROSS Id "<<pJob->Id() 
        << " sucessfully submitted with BOSS Id = "<<bossId
-       << " and scheduler ID " << this->schedId(pJob)<<endl;
+       << " and scheduler ID " << schedId(pJob)<<endl;
 
   return EXIT_SUCCESS;
 }
@@ -74,7 +74,7 @@ const string BossIf::status(const Job* pJob) {
     return "U";
   }
 
-  if(!this->bossId(pJob)) return "N"; //Not submitted (no bossId)
+  if(!bossId(pJob)) return "N"; //Not submitted (no bossId)
 
   //Check if status already exists
   for(IntStringMap::const_iterator pos = jobStatusMap_.begin(); pos != jobStatusMap_.end() ; ++pos)
@@ -87,7 +87,7 @@ const string BossIf::status(const Job* pJob) {
   bossArgs[0] = "query";
   bossArgs[1] = "-jobid";
   ostringstream os;
-  os<<this->bossId(pJob);
+  os<<bossId(pJob);
   bossArgs[2] = const_cast<char*> ((os.str()).c_str());
   bossArgs[3] = "-statusOnly";
   if(Log::level()>2)  {
@@ -121,13 +121,13 @@ const string BossIf::status(const Job* pJob) {
     return "U";
   }
 
-  if(!readJobId==(this->bossId(pJob))) { 
+  if(!readJobId==(bossId(pJob))) { 
     report_error("BossIf::status()", "Queried BOSS ID does not match");
     return "U";
   }
   
   if(Log::level()>2)  cout << "BossIf::status(): GROSS Id "<< pJob->Id() 
-			   << " with BOSS Id " << (this->bossId(pJob)) 
+			   << " with BOSS Id " << (bossId(pJob)) 
 			   << " has status " << status<<endl;
   jobStatusMap_[(pJob->Id())] = status;
   return status;
@@ -199,8 +199,8 @@ const string BossIf::queryBossDb(const Job* pJob, const string tablename,
     cerr<<"Job::queryBossDb() Error Job/Task undefined !"<<endl;
     return noVal;
   }
-  int bossId = this->bossId(pJob);
-  if(!bossId) {
+  int myBossId = bossId(pJob);
+  if(!myBossId) {
     return noVal;
   }
 
@@ -210,7 +210,7 @@ const string BossIf::queryBossDb(const Job* pJob, const string tablename,
   else fKey="JOBID";
   
   ostringstream os;
-  os << fKey << "=" << bossId;
+  os << fKey << "=" << myBossId;
   vector<string> myResults;
   if(LocalDb::instance()->tableRead(tablename, field, os.str(), myResults)) return noVal;
   if(myResults.size()>1) {

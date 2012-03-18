@@ -68,4 +68,12 @@ int Command::initDb() {
   }
   return EXIT_SUCCESS;
 }
-
+string Command::getFacType(int myTaskId) const {
+  if(!myTaskId) return "";
+  ostringstream sel;
+  sel <<"ID="<<myTaskId;
+  vector<string> results;
+  if(LocalDb::instance()->tableRead("Analy_Task", "FacType", sel.str(), results)) return "";
+  if(results.size()!=1) return "";
+  return results[0];
+}

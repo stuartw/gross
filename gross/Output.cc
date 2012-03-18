@@ -4,6 +4,7 @@
 #include "Task.hh"
 #include "FileSys.hh"
 #include "Range.hh"
+#include "TaskFactory.hh"
 
 Output::Output() : Command() {
   opt_["-taskId"] = "0";
@@ -45,6 +46,9 @@ int Output::execute() {
   
   //Create QInfoTask object for particular task/jobs required
   int myTaskId=atoi((opt_["-taskId"]).c_str());	  
+
+  //Initialise concrete factory type
+  TaskFactory::facType(getFacType(myTaskId));
 
   Range jobRange(opt_["-jobId"]);    
 

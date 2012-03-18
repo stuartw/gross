@@ -3,6 +3,17 @@
 #include "FileSys.hh"
 #include <string>
 
+/*! 
+  
+\mainpage GRidified Orca Submission System (GROSS)
+
+These document pages have been created for GROSS developers, not ordinary users.
+Users should consult the GROSS User Guide, available for download from
+http://www.hep.ph.ic.ac.uk/e-science/projects/downloads.html
+
+
+*/
+
 //int Log::level_=0; //Default Logging Level
 //string FileSys::oDir_="./"; //Default Output Directory
 

@@ -36,11 +36,16 @@ int Register::execute() {
   if(initDb()) return EXIT_FAILURE;     
 
   //Check input
-  if(opt_["-wrapScript"] =="NULL" || opt_["-wrapName"]=="NULL") {
-    cerr<<"Error: -wrapScript and/or -wrapName unspecified"<<endl;
+  if(opt_["-wrapScript"] =="NULL") {
+    cerr<<"Error: -wrapScript file unspecified"<<endl;
     return EXIT_FAILURE;
   }
   
+  if(opt_["-wrapName"]=="NULL") {
+    cerr<<"Error: -wrapName unspecified"<<endl;
+    return EXIT_FAILURE;
+  }
+
   //Find Specified Wrap Script
   File wrapScript(opt_["-wrapScript"]);
   if(!wrapScript.exists()) {

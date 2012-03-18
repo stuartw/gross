@@ -11,7 +11,7 @@ Prepare::Prepare() : Command() {
   opt_["-userSpec"]  = "NULL";
   opt_["-dbSpec"];
   opt_["-save"];
-  opt_["-wrapName"]  = "standard";
+  opt_["-type"]  = "OrcaG";
   opt_["-logLevel"]  = "0";
 }
 Prepare::~Prepare(){}
@@ -26,7 +26,7 @@ void Prepare::printUsage() const
        << "            -userSpec <userSpecFile>" << endl
        << "            -dbSpec <dbSpecFile>" << endl
        << "            -save" << endl
-       << "            -wrapName <wrapperName>" << endl
+       << "            -type <wrapperName>" << endl
        << "            -logLevel <logLevel>" << endl
        << endl;
 }
@@ -46,18 +46,29 @@ int Prepare::execute() {
   if(initDb()) return EXIT_FAILURE;
   
   //Create Task
+  Task* myTask=0;
+
+  //.. either from database:
   int myTaskId=atoi((opt_["-taskId"]).c_str());	  
-  Task* myTask=(TaskFactory::instance())->makeTask(myTaskId);
-  if(!myTask) return EXIT_FAILURE;
-  File userfile(opt_["-userSpec"]);
-
-  //Initialise Task
-  if(myTask->init(&userfile, myTaskId)) return EXIT_FAILURE;
-
+  if(myTaskId) {
+    TaskFactory::facType(getFacType(myTaskId));
+    myTask=(TaskFactory::instance())->makeTask(myTaskId);
+  }
+  //.. or from new user spec
+  else
+    {
+      TaskFactory::facType(opt_["-type"]);  
+      File userFile(opt_["-userSpec"]);
+      myTask=(TaskFactory::instance())->makeTask(&userFile);
+    }
+  if(!myTask) return EXIT_FAILURE;  //check ptr exists
+  if(!*myTask) return EXIT_FAILURE; //check object was initialised ok
+  
   //Prepare jobs
   cout << "Preparing jobs for this task "<<endl;
-  if(myTask->prepareJobs(opt_["-wrapName"])) return EXIT_FAILURE;
-
+  if(myTask->split()) return EXIT_FAILURE;
+  if(myTask->makeSubFiles()) return EXIT_FAILURE;
+  
   //Save task and jobs to db
   if(opt_["-save"]=="TRUE") {
     cout <<"Saving task info to db"<<endl;

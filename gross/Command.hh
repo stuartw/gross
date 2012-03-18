@@ -19,6 +19,14 @@ public:
   virtual int execute() =0;
   virtual void printUsage() const =0;
   virtual int initDb();
+  /*!
+    \brief gets the factory type from database
+    
+    Note that this breaks the encapsulation of db schema - should have all info for objects
+    read from/stored on database by objects themselves. In this case however, the object 
+    must be created using this information.
+  */
+  virtual string getFacType(int aTaskId) const;
 };
 
 #endif

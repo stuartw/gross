@@ -1,27 +1,19 @@
-#ifndef DBJOB_H
-#define DBJOB_H
+#ifndef DBORCAGJOB_H
+#define DBORCAGJOB_H
 #include "Log.hh"
 
-#include "Job.hh"
+#include "OrcaGJob.hh"
 class Task;
-class Wrapper;
-class JDL;
 
-class DbJob : public Job {
+class DbOrcaGJob : public OrcaGJob {
 public:
-  DbJob(const int anId, const int aDataSelect, Task* aTask); //dataSelect is int at the moment as it is just a run num.
-  ~DbJob();
-  virtual int init();
-  virtual int createSubFiles(string aType);
-  
-  virtual int save();
-  virtual int clean();
+  DbOrcaGJob(const int anId, const int aDataSelect, Task* aTask); //dataSelect is int at the moment as it is just a run num.
+  virtual int makeSubFiles();
+  int save();
 
-  virtual File* xMLFrag() const {return pXMLFragFile_;};
-  
 protected:
   //Setting files for submission
-  virtual int createWrapper(string aType);
+  virtual int createWrapper();
   virtual int createJDL();
   //Orca Specific
   virtual File* setXMLFrag();
@@ -36,8 +28,6 @@ protected:
   virtual int setUniqSuffix();
   virtual int setStdOutFile();
   virtual int setStdErrFile();
-private:
-  File* pXMLFragFile_;
 };
 
 #endif

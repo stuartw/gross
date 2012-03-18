@@ -2,21 +2,28 @@
 #define JDL_H
 #include "Log.hh"
 
-class CladLookup;
-class JDL; 
-class Job; 
+/*!
+  \brief Class to write out a JDL for BOSS to use for submission
 
+  BOSS requires a JDL to specify its submission parameters - no matter what type
+  of queue BOSS submits to. This class will create this file.
+
+  This pABC defines a standard interface for a JDL. Concrete classes derived from this
+  class will implement the script() function that actually writes out the contents of the
+  JDL file that is created.
+
+*/
 
 class JDL {
 public:
-  JDL(const Job* aJob, const CladLookup* aUserSpec, const string aFileName);
-  const int save(string aDir);
-  const string name() const {return name_;};
-  const string fullHandle() const {return fullHandle_;};
+  JDL(const string aFileName);
+  virtual ~JDL()=0; //pABC
+  virtual int save(string aDir);
+  virtual const string name() const {return name_;};
+  virtual const string fullHandle() const {return fullHandle_;};
+protected:
+  virtual const string script()=0; //must be defined in sub-classes
 private:
-  const Job* job_;
-  const CladLookup* userSpec_;
-  const string script();
   const string name_;
   string fullHandle_;
   //No implementation

@@ -21,13 +21,12 @@ int QInfoTask::init(int myTaskId, int minJobId /*=0*/, int maxJobId /*=0*/) {
 
   minJob_=minJobId;
   maxJob_=maxJobId;
-
+  
   //Create and initialise task
   task_=(TaskFactory::instance())->makeTask(myTaskId);
-  if(!task_) return EXIT_FAILURE;
-  File nullFile("NULL");
-  if(task_->init(&nullFile, myTaskId)) return EXIT_FAILURE;
-  if(task_->queryPrepareJobs()) return EXIT_FAILURE;
+  if(!task_) return EXIT_FAILURE; //check ptr not empty
+  if(!*task_) return EXIT_FAILURE; //check object initialised ok
+  if(task_->split()) return EXIT_FAILURE;
 
   copy((task_->jobs())->begin(), (task_->jobs())->end(), back_inserter(jobs_)); //Make a copy of all jobs for task
   jobs_.erase(remove_if(jobs_.begin(), jobs_.end(), JobRange(minJob_, maxJob_)), jobs_.end()); //Erase jobs not within jobrange
@@ -49,9 +48,7 @@ int QInfoTask::printJobs() const {
     return EXIT_FAILURE;
   }
   if(header_) cout << "Job info:"<<endl;
-  for(vector<Job*>::const_iterator it = jobs_.begin(); it != jobs_.end() ; it++) {
-    cout << *(*it) <<endl;
-  }
+  for(vector<Job*>::const_iterator it = jobs_.begin(); it != jobs_.end() ; it++) (*it)->print();
   cout << endl;
   return EXIT_SUCCESS;
 }

@@ -15,7 +15,7 @@ DbSpec::DbSpec(string myDbSpec){
   port_ = 0;
   clientFlag_ = 0;   
 
-  this->init(); //initialise data members
+  init(); //initialise data members
 }
 DbSpec::~DbSpec(){
   if(clad_) delete clad_;
@@ -46,11 +46,11 @@ void DbSpec::init(){
   clad_->BossClassAd::ClAdLookup("BOSS_DB_CLIENT_FLAG", &myString);
   clientFlag_ = atol(myString.c_str());
   if(Log::level()>3) cout << "DbSpec::init() read in DB connection parameters: "
-       <<this->hostname() << " " 
-       <<this->username() << " " 
-       <<this->password() << " "
-       <<this->database() << " " 
-       <<this->unixSocket() << " " 
-       <<this->port() << " " 
-       <<this->clientFlag() << " "<<endl;
+			  <<hostname() << " " 
+			  <<username() << " " 
+			  <<password() << " "
+			  <<database() << " " 
+			  <<unixSocket() << " " 
+			  <<port() << " " 
+			  <<clientFlag() << " "<<endl;
 }

@@ -12,7 +12,6 @@ Submit::Submit() : Command() {
   opt_["-bossType"]  = "NULL";
   opt_["-bossSched"]  = "NULL";
   opt_["-jobId"]  = "NULL";
-  opt_["-wrapName"]  = "standard";
   opt_["-logLevel"]  = "0";
 }
 Submit::~Submit(){}
@@ -28,7 +27,6 @@ void Submit::printUsage() const
        << "            -bossType <BossJobType>" <<endl
        << "            -bossSched <BossScheduler>" <<endl
        << "            -jobId <jobId>" <<endl
-       << "            -wrapName <type>" <<endl
        << "            -logLevel <logLevel>" << endl
        << endl;
 }
@@ -46,29 +44,30 @@ int Submit::execute() {
 
   //Initialise Db
   if(initDb()) return EXIT_FAILURE;     
-  
+
   //Create Task
   int myTaskId = atoi((opt_["-taskId"]).c_str());
-  if(myTaskId==0) {
+  if(!myTaskId) {
     cerr<<"Error: -taskId not specified"<<endl;
     return EXIT_FAILURE;
   }
-  Task* pTask=(TaskFactory::instance())->makeTask(myTaskId);
-  if(!pTask) return EXIT_FAILURE;
   cout <<"Reading from Db task ID "<<opt_["-taskId"]<<endl;
-  File* nullFile;
-  if(pTask->init(nullFile, myTaskId)) return EXIT_FAILURE;
+  TaskFactory::facType(getFacType(myTaskId)); //Initialise Factory type		       
+  Task* pTask=(TaskFactory::instance())->makeTask(myTaskId); //Create task
+  if(!pTask) return EXIT_FAILURE;  //check ptr exists
+  if(!*pTask) return EXIT_FAILURE; //check object was initialised ok
 
   //Prepare jobs
   cout << "Preparing jobs for this task "<<endl;
-  if(pTask->prepareJobs(opt_["-wrapName"])) return EXIT_FAILURE;
+  if(pTask->split()) return EXIT_FAILURE;
+  if(pTask->makeSubFiles()) return EXIT_FAILURE;
 
   //Submit jobs
   if(opt_["-bossType"]=="NULL" || opt_["-bossSched"]=="NULL") {
     cerr <<"Error: -bossType and/or -bossSched not specified"<<endl;
     return EXIT_FAILURE;
   }
-  BossIf myBossIf(pTask); //Create object to submit to
+  BossIf myBossIf(pTask); //Create BOSSIf object to submit to
   if(opt_["-jobId"]!="NULL") {
     int myJobId = atoi((opt_["-jobId"]).c_str());
     cout <<"Submitting single job to BOSS with GROSS JobId " << myJobId <<endl;

@@ -7,14 +7,24 @@ class Task;
 class Job;
 #include "QInfoTask.hh"
 
+/*!
+  \brief BOSS interface class
+
+  Interfaces to BOSS for all submission and monitoring commands that pass through BOSS. Using an interface to do this
+  means that any changes to the BOSS interface are restricted to this class.
+
+  
+
+*/
+
 class BossIf{
 public:
   BossIf(const Task* pTask);
-  int submitJob(const string aSched, const string aBossJobType, const Job* pJob) const; //To submit an individual job within a task
-  int submitTask(const string aSched, const string aBossJobType) const; //To submit all jobs within a task
-  const string status(const Job* pJob); //Returns BOSS status letter (returns "U" for failure, "N" for not submitted)
-  int bossId(const Job* pJob) const; //Returns 0 for error, BossId for success.
-  const string schedId(const Job* pJob) const; //Returns "" for error, schedId for success.
+  int submitJob(const string aSched, const string aBossJobType, const Job* pJob) const; ///<To submit an individual job within a task
+  int submitTask(const string aSched, const string aBossJobType) const; ///<To submit all jobs within a task
+  const string status(const Job* pJob); ///<Returns BOSS status letter (returns "U" for failure, "N" for not submitted)
+  int bossId(const Job* pJob) const; ///<Returns 0 for error, BossId for success.
+  const string schedId(const Job* pJob) const; ///<Returns "" for error, schedId for success.
 private:
   /*!
     \brief General query method
@@ -25,7 +35,7 @@ private:
   */
   friend int QInfoTask::printBossDbField(const string) const;
   const string queryBossDb(const Job* pJob, const string tablename, 
-			   const string field) const; //tablename must contain fKey (called ID for JOB table else JOBID) referring to bossId
+			   const string field) const; ///<tablename must contain fKey (called ID for JOB table else JOBID) referring to bossId
   int saveId(const int aTaskId, const int aJobId, const int aBossId) const;
   const Task* pTask_;
 

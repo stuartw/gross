@@ -1,0 +1,39 @@
+-----------------------------------
+Enhancements to go into GROSS_0_1_1
+-----------------------------------
+
+The following are invisible to the user, but will make the GROSS architecture more logical, easier to 
+use and easier to maintain in the future.
+
+o     Simpler inheritance structure
+	      -> new layer (ORCATask and ORCAJob)
+	      -> clean up methods (eg queryprep only in DbTask; make inheritance structure appropriate)
+	      -> restructure methods/names for easy comprehension - make the inheritable methods generic.
+
+o     Improve STL for the containers used in Job. 
+	      -> use sets which have unique values, for example (to stop the messing around worrying about ordering
+	      of method calls).
+	      -> think about using a single map called "Files" rather than having to have separate input, output, sandbox, etc.
+	      This would simplify the Database tables too.
+
+o     Have user give single type that defines the TaskFactory to be used. This in turn defines whole family
+      of classes. The factory will choose BOTH family of classes AND script to be run. This breaks a bit
+      of the flexibility, but improves useability and understandability (the script to be run will nearly 
+      always be linked to a particular wrapper script. Could add in future, or even simply have a generic naming
+      scheme - eg ORCAGrid and OSCARGrid can be "OR"ed in the TaskFactory if else statement).
+
+o     Add Wrapper and JDL to the family of classes chosen by the Factory. Give them inheritance, with 
+      (probably) the only virtual function being the script() method. 
+
+o     Add QInfoTask and TaskOutput into family too - again inheritance as above (alternative is to see if they
+      can be easily added to the Task/Job class. What benefit are they as separate classes?)
+
+
+
+
+Functionality enhancements:
+
+o     Registering output files
+
+o     Schema for information to be stored in db (eg username, time submitted, etc).
+

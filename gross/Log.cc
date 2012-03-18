@@ -9,3 +9,4 @@ Log* Log::instance() {
   return instance_;
 }
 
+
