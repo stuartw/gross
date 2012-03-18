@@ -8,9 +8,26 @@
 #include <BossCommandInterpreter.h>
 #include "Range.hh"
 #include "StringSpecial.hh"
+#include <iostream>
+#include <set>
+
+using namespace stringSpecial;
 
 BossIf::BossIf(const Task* pTask) : pTask_(pTask) {}
 
+class failedStatus { //Functor for sorting through job vector and finding failed jobs
+private:
+  BossIf* pBossIf_;
+public:
+  failedStatus(BossIf* myBossIf) : pBossIf_(myBossIf) {};
+  bool operator()(Job* pJob) const {
+    string status=pBossIf_->status(pJob);
+    if (status!="A") return true;
+    string exitStatus=pBossIf_->exitStatus(pJob);
+    if(status=="0"||status=="")  {return true;}
+    else return false;  
+  }
+};
 int BossIf::submitJob(const string mySched, const string myBossJobType, const Job* pJob) const{
   int bossId = 0;
   if(!pTask_) {
@@ -61,21 +78,25 @@ int BossIf::submitJob(const string mySched, const string myBossJobType, const Jo
   if(Log::level()>0) cout <<"BossIf::submitJob() Full output from BOSS submission is:"<<endl << bossOutput.str();
   
   //Get BossID (Not pretty, but only way I can think of doing this...)
-  bossId=LocalDb::instance()->maxCol("JOB","ID");
-  if(!bossId||bossId!=(lastId+1)) {
-    cerr<<"BossIf::SubmitJob() Error cannot get bossId from Db"<<
-      " last ID: " << lastId <<" this ID: " << bossId<<endl;
+  if (stringSearch(bossOutput.str(),"Job ID")) {
+    int posId = bossOutput.str().find("Job ID")+7;
+    int posEnd = bossOutput.str().find("\n", posId);    
+    bossId = atoi(bossOutput.str().substr(posId, posEnd).c_str());
+  }	  
+  
+  if(!bossId) {
+    cerr<<"BossIf::SubmitJob() Error cannot get boss job Id"<<endl;
     return EXIT_FAILURE;
   }
-
+  
   //Now save this submitted job
   if(Log::level()>2) cout <<"BossIf::submitJob() Saving BossId to DB" <<endl;
   if(saveId(pTask_->Id(), pJob->Id(), bossId)) return EXIT_FAILURE;
 
     //check scheduler id returned if not error;
   if (schedId(pJob)=="") {
-  cout <<"BossIf::submitJob() Full output from BOSS submission is:"<<endl << bossOutput.str();
-  cerr << "Job not submitted - will not submit any more jobs" << endl;
+    cout <<"BossIf::submitJob() Full output from BOSS submission is:"<<endl << bossOutput.str();
+    cerr << "Job not submitted" << endl;
     return EXIT_FAILURE;
   }
   
@@ -83,6 +104,103 @@ int BossIf::submitJob(const string mySched, const string myBossJobType, const Jo
        << " sucessfully submitted with BOSS Id = "<<bossId
        << " and scheduler ID " << schedId(pJob)<<endl;
 
+  return EXIT_SUCCESS;
+}
+int BossIf::rangeStatus(Range jobRange) {
+  if(!pTask_) {
+    cerr<<"BossIf::rangeStatus() Error Task not defined!"<<endl;
+    return EXIT_FAILURE;
+  }
+
+  if(jobs_.empty()) {
+    cerr<<"BossIf::rangeStatus() Error: no jobs in range"<<endl;
+    return EXIT_FAILURE;
+  }  
+
+  std::set<int> bossIds;  //if *i already known dont push back
+  for (vector<Job*>::const_iterator i = jobs_.begin(); i!=jobs_.end(); i++) {
+    bool known=false;
+    for(IntStringMap::const_iterator pos = jobStatusMap_.begin(); pos != jobStatusMap_.end() ; ++pos) {
+      if((pos->first) == (*i)->Id()) known=true;
+    }
+    if (!known) bossIds.insert(bossId(*i));	  
+  }
+  //finds consecutive ints from boss Ids of jobs and puts them in map - low value=key, high value=value
+  //use with boss query later
+  //easier way??? - should be
+  std::map<int,int> bossRanges;
+  int first=*(bossIds.begin());
+  int current=first;
+  if (bossIds.empty()) return EXIT_SUCCESS;
+  for (set<int>::const_iterator i = bossIds.begin(); i!=bossIds.end();) {
+    if (*i==current+1 || *i==current ) {
+      current = *i;
+    } else {
+      bossRanges.insert(std::make_pair(first, current));
+      first = *i;
+      current = *i;
+    }
+    i++;
+    if (i==bossIds.end()) {
+      bossRanges.insert(std::make_pair(first, current));
+    }
+  }   
+  
+  //now do boss query on map and parse output
+  for (std::map<int,int>::const_iterator i = bossRanges.begin(); i != bossRanges.end(); i++) {
+    if(!(i->first)) continue; //ignore jobs not submitted to Boss
+    //setup Boss commands
+    BossCommandInterpreter ci;
+    int bossargc=3;
+    char* bossArgs[bossargc];
+    bossArgs[0] = "query";
+    bossArgs[2] = "-all";
+    bossArgs[1] = "-statusOnly";
+    //bossArgs[3] = "-jobid";
+    //ostringstream os;
+    //os<<i->first/*<<":"<<i->second<<"0"*/;
+    //bossArgs[4] = const_cast<char*> ((os.str()).c_str());
+    //if (!strcmp(bossArgs[4],"10:530")) {
+    //  cout << "strings match value " << strcmp(bossArgs[4],"10:530")<<endl;
+    //} else {
+    //  cout << "strings DONT match" <<endl;
+    //  cout << "string is_" << bossArgs[4] << "_" <<endl;
+    //}
+    if(Log::level()>2)  {
+      cout << "BossIf::rangeStatus() Querying boss job. Boss arguments are: "<<endl;
+      for(int i=0; i<bossargc;i++) {
+        cout << bossArgs[i]<< " ";
+        cout <<endl;
+      }	
+    }  
+    //Redirect cout to an ostringstream and run Boss query
+    std::streambuf* psbuf_orig = cout.rdbuf();
+    ostringstream bossOutput;
+    cout.rdbuf(bossOutput.rdbuf());
+    if(ci.acceptCommand(bossargc, bossArgs)) {
+      cout.rdbuf(psbuf_orig);
+      cerr<<"BossIf::rangeStatus() Warning: BOSS query failure"<<endl;
+      return EXIT_SUCCESS;
+    }
+    cout.rdbuf(psbuf_orig);
+    if(Log::level()>2)  cout <<"BossIf::rangeStatus() The boss result is:"<<endl << bossOutput.str();
+    //Process Output in a safe way
+    for (int j = i->first; j<=i->second; j++) {
+      ostringstream temp;
+      temp << j;
+      if(stringSearch(bossOutput.str(),temp.str().c_str())) {
+	string::size_type startf1 = bossOutput.str().find(temp.str().c_str());
+	string::size_type endf1 = bossOutput.str().find("\n", startf1) - startf1;
+        string f1= (bossOutput.str()).substr(startf1,endf1);
+	string status = f1.substr(endf1-1,1);
+        if (status=="M") status="E";
+	if(Log::level()>2)  cout << "BossIf::rangeStatus(): GROSS Id "<< jobId(j)
+                                 << " with BOSS Id " << j
+                                 << " has status " << status<<endl;
+        jobStatusMap_[jobId(j)] = status;
+      }
+    }
+  }
   return EXIT_SUCCESS;
 }
 const string BossIf::status(const Job* pJob) {
@@ -166,28 +284,56 @@ int BossIf::submitTask(const string mySched, const string myBossType) const {
   }
   return EXIT_SUCCESS;
 }
-int BossIf::submitJobs(const string mySched, const string myBossType, int minJobId, int maxJobId) {
+int BossIf::setJobs(Range jobRange, bool onlyFailed) {
+  if(!pTask_) {
+    cerr<<"BossIf::setJobs() Error Task not defined!"<<endl;
+    return EXIT_FAILURE;
+  }
+  
+  minJob_=jobRange.min();
+  maxJob_=jobRange.max();
+
+  copy((pTask_->jobs())->begin(), (pTask_->jobs())->end(), back_inserter(jobs_)); //Make a copy of all jobs for task
+  rangeStatus(jobRange); 
+  jobs_.erase(remove_if(jobs_.begin(), jobs_.end(), JobRange(minJob_, maxJob_)), jobs_.end()); //Erase jobs not within jobrange
+  //if resubmission remove jobs that have not failed
+  if (onlyFailed) jobs_.erase(remove_if(jobs_.begin(), jobs_.end(), failedStatus(this)), jobs_.end());
+  
+  return EXIT_SUCCESS;
+}
+int BossIf::submitJobs(const string mySched, const string myBossType, Range jobRange) {
   if(!pTask_) {
     cerr<<"BossIf::submitJobs() Error Task not defined!"<<endl;
     return EXIT_FAILURE;
   }
 
-  minJob_=minJobId;
-  maxJob_=maxJobId;
-
-  copy((pTask_->jobs())->begin(), (pTask_->jobs())->end(), back_inserter(jobs_)); //Make a copy of all jobs for task
-  jobs_.erase(remove_if(jobs_.begin(), jobs_.end(), JobRange(minJob_, maxJob_)), jobs_.end()); //Erase jobs not within jobrange
-   
   if(jobs_.empty()) {
     cerr<<"BossIf::submitJobs() Error: no jobs in range"<<endl;
     return EXIT_FAILURE;
   }	
 
+  //check proxy if bossSched=edg
+  if(mySched=="edg") {
+    string command = "grid-proxy-info -exists";
+    if(system(command.c_str())) {
+      cerr << "BossIf::submitJobs() Error: Cannot find grid tools or grid proxy not valid (do grid-proxy-init)" <<endl;
+      return EXIT_FAILURE;
+    }
+  }    
+  
+  int failures=0;
+  int successes=0;
   for(vector<Job*>::const_iterator i = jobs_.begin(); i!=jobs_.end(); i++) {
     if(Log::level()>2) cout <<"BossIf::submitJobs() Submitting job with id " << (*i)->Id() <<endl;
-    if(submitJob(mySched, myBossType, (*i))) return EXIT_FAILURE;
+    if(submitJob(mySched, myBossType, (*i))) {
+      failures++;
+      cerr << "BossIf::submitJobs() Error: Unable to submit job " << (*i)->Id() << endl;
+      cerr << "\twill try to continue with the remaining jobs" << endl;
+    } else successes++;       
   }
   
+  cout << endl << "Submitted " << successes << " job(s) out of " << successes+failures << " total job(s) " << "for task " << pTask_->Id()<< endl;
+ 
   return EXIT_SUCCESS;    
 }	
 int BossIf::saveId(const int myTaskId, const int myJobId, const int myBossId) const {
@@ -224,6 +370,20 @@ int BossIf::bossId(const Job* pJob) const {
   }
   bossId = atoi(myResults[0].c_str());
   return bossId;
+}
+int BossIf::jobId(int bossId) const {
+  int jobId=0;
+  ostringstream os;
+  os << "BossID="<<bossId<<endl;
+  if(Log::level()>2) cout<<"BossIf::jobId() Getting jobId from Db"<<endl;
+  vector<string> myResults;
+  if(LocalDb::instance()->tableRead("Analy_Job","JobID",os.str(), myResults)) return jobId;
+  if(myResults.size()!=1) {
+    cerr<<"BossIf::bossId() Error reading JobID from Db"<<endl;
+    return jobId;
+  }
+  jobId = atoi(myResults[0].c_str());
+  return jobId;  
 }
 const string BossIf::schedId(const Job* pJob) const {
   string s = queryBossDb(pJob, "JOB", "SID");
@@ -316,12 +476,6 @@ int BossIf::killJobs(int minJobId, int maxJobId) {
     cerr<<"BossIf::killJobs() Error Task not defined!"<<endl;
     return EXIT_FAILURE;
   }
-
-  minJob_=minJobId;
-  maxJob_=maxJobId;
-
-  copy((pTask_->jobs())->begin(), (pTask_->jobs())->end(), back_inserter(jobs_)); //Make a copy of all jobs for task
-  jobs_.erase(remove_if(jobs_.begin(), jobs_.end(), JobRange(minJob_, maxJob_)), jobs_.end()); //Erase jobs not within jobrange
 
   if(jobs_.empty()) {
     cerr<<"BossIf::killJobs() Error: no jobs in range"<<endl;

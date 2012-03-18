@@ -9,7 +9,7 @@
 #include "File.hh"
 #include "CladLookup.hh"
 #include "TaskFactory.hh"
-
+#include "ContPrint.hh"
 #include "PhysCat.hh"
 #include "pstream.h"
 #include "StringSpecial.hh"
@@ -64,7 +64,7 @@ int NewOrcaLocJob::makeSubFiles() {
 int NewOrcaLocJob::delSubFiles() {
   if (wrapper_) {
     for(set<File*>::const_iterator i=(wrapper_->files()).begin(); i!=(wrapper_->files()).end(); i++)
-      (*i)->remove();
+      ;//(*i)->remove();
   }
   if (pTarFile_) pTarFile_->remove();
   if (jdl_) {
@@ -135,8 +135,7 @@ File* NewOrcaLocJob::setTarFile() {
       return 0;
     }
     if(stringSearch(output,LocalRT)) {
-      cout << output <<endl;
-	    string sTemp=output.substr(1,output.find("=>")-2);
+      string sTemp=output.substr(1,output.find("=>")-2);
       if(Log::level()>2) cout << "NewOrcaLocJob::setTarFile() Found user library " << sTemp <<endl;
       libs = libs+string(" ") + string("lib/") + ARCH + string ("/") + sTemp;
     }
@@ -251,12 +250,26 @@ int NewOrcaLocJob::setLocalInFiles(){
     vLocalInFiles_.insert(new File(*it));
   }    
 
+  //also local pool file catalogs
+  vS.clear();
+  task_->userSpec()->read("ExtraPoolCatalogs", vS);
+  for(vector<string>::const_iterator it = vS.begin(); it!=vS.end(); it++) {
+    if (stringSearch(*it, "xmlcatalog_file")) { //only add local files
+      int pos = it->find("xmlcatalog_file:") + 16; 
+      int length = it->length() - pos;
+      if(Log::level()>2) cout << "NewOrcaLocJob::setLocalInFiles() reading Pool Catalog name:" << (*it) << endl;
+      vLocalInFiles_.insert(new File(it->substr(pos,length)));
+    }
+  }
+  
+  //check all files exist  
   for(set<File*>::const_iterator it=vLocalInFiles_.begin(); it!=vLocalInFiles_.end(); it++) {
     if ( !(*it)->exists() ) {
       cerr << "NewOrcaLocJob::setLocalInFiles() Error unable to find file: " << (*it)->fullHandle() << endl;
       return EXIT_FAILURE;
     }
   }
+  
   return EXIT_SUCCESS;
 }
 int NewOrcaLocJob::setOutFiles(){
@@ -318,8 +331,11 @@ int NewOrcaLocJob::setSites() {
   if(Log::level()>2) cout << "NewOrcaLocJob::setSites() finding PubDBs with this dataset" << endl;
   const NewOrcaTask* mytask_ = dynamic_cast<const NewOrcaTask*> (task());
   vSites = mytask_->physCat()->getSites4MyRuns(dataSelect());
-  if (vSites.empty()) {
-    cerr << "NewOrcaLocJob::setSites() Error No PubDb's found with this dataset" << endl;
+  vector<string> PoolCatFiles;
+  task_->userSpec()->read("ExtraPoolCatalogs", PoolCatFiles);
+  if(Log::level()>2&&!PoolCatFiles.empty()) cout << "NewOrcaLocJob::setSites() using POOL catalog " << PoolCatFiles << endl;
+  if (vSites.empty()&&PoolCatFiles.empty()) {
+    cerr << "NewOrcaLocJob::setSites() Error No PubDb's found for this job and no POOL catalogs specified" << endl;
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;

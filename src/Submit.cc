@@ -13,6 +13,7 @@ Submit::Submit() : Command() {
   opt_["-bossType"]  = "gross";
   opt_["-bossSched"]  = "edg";
   opt_["-jobId"]  = "NULL";
+  opt_["-resubmit"] = "NULL";
   opt_["-logLevel"]  = "0";
 }
 Submit::~Submit(){}
@@ -28,6 +29,7 @@ void Submit::printUsage() const
        << "            -bossType <BossJobType>" <<endl
        << "            -bossSched <BossScheduler>" <<endl
        << "            -jobId <GROSS Job ID range>" <<endl
+       << "	       -resubmit" << endl
        << "            -logLevel <logLevel>" << endl
        << endl;
 }
@@ -68,21 +70,9 @@ int Submit::execute() {
    
   cout << "Submitting Jobs"<<endl;
   BossIf myBossIf(pTask); //Create BOSSIf object to submit to
-  //if(opt_["-jobId"]!="NULL") {
-    //int myJobId = atoi((opt_["-jobId"]).c_str());
-    //cout <<"Submitting single job to BOSS with GROSS JobId " << myJobId <<endl;
-    //Get Job from Task
-    //const Job* pJob = pTask->job(myJobId);
-    //if(!pJob) {
-    //  cerr<<"Error retrieving Job Id from Task"<<endl;
-    //  return EXIT_FAILURE;
-    //}    
-    if(myBossIf.submitJobs(opt_["-bossSched"],opt_["-bossType"], jobRange.min(), jobRange.max())) return EXIT_FAILURE;
-  //}
-  //else {
-  //  cout <<"Submitting Task"<<endl;
-  //  if(myBossIf.submitTask(opt_["-bossSched"],opt_["-bossType"])) return EXIT_FAILURE;
-  //}
+  if (myBossIf.setJobs(jobRange, opt_["-resubmit"]=="TRUE")) return EXIT_FAILURE; 
+  
+  if(myBossIf.submitJobs(opt_["-bossSched"],opt_["-bossType"], jobRange)) return EXIT_FAILURE;
   
   //delete submission files
   if (Log::level()>0) cout <<"Deleting submission files"<<endl;

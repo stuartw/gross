@@ -62,6 +62,7 @@ int Kill::execute() {
   
   //perform BOSS kill from scheduler for single job or whole task
   BossIf boss(pTask);
+  boss.setJobs(jobRange);
   if (boss.killJobs(jobRange.min(), jobRange.max())) {
     cerr<<"Error killing Task " << myTaskId<< " from BOSS "<<endl;
     return EXIT_FAILURE;

@@ -5,6 +5,7 @@
 #include "File.hh"
 #include "ContPrint.hh"
 #include "Site.hh"
+#include "StringSpecial.hh"
 
 OrcaLocWrapper::OrcaLocWrapper(const OrcaLocJob* myJob, CladLookup* myUserSpec, const string myExecName, const string myType) 
   : Wrapper(myExecName, myType), job_(myJob), userSpec_(myUserSpec) {};
@@ -54,7 +55,6 @@ int OrcaLocWrapper::steer(){
     return EXIT_FAILURE;
   }
   osbuff << "Orcarc " << file.name()<<endl;
-      
   
   //scram
   const string sScram = userSpec_->read("Scram");
@@ -111,6 +111,21 @@ int OrcaLocWrapper::steer(){
       osbuff << " " << *i;
     }
   } 
+  osbuff << endl; 
+  
+  //add any POOL cats specified in userSpec
+  sVS.clear();
+  userSpec_->read("ExtraPoolCatalogs", sVS);
+  if (!sVS.empty()) osbuff << "ExtraPoolCatalogs ";
+  for (vector<string>::const_iterator i=sVS.begin(); i!= sVS.end(); i++) {
+    osbuff << *i << " ";
+  }
+  osbuff << endl;
+  
+  //add scram variables
+  const string sSCRAM = userSpec_->read("SCRAM_ARCH");
+  if(!sSCRAM.empty()) osbuff << "SCRAM_ARCH " << sSCRAM <<endl;
+
   steer_=osbuff.str();
   return EXIT_SUCCESS;
 }

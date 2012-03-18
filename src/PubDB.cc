@@ -5,7 +5,13 @@
 
 using namespace std;
 
-std::string PubDB::tmp_curl_string;
+string PubDB::RefDB = "http://cmsdoc.cern.ch/cms/production/www/PubDB/GetIdCollection.php";
+string PubDB::centralPubDB = "http://cmsdoc.cern.ch/cms/production/www/PubDB/GetPublishedCollectionInfoFromRefDB.php";
+string PubDB::listRuns = "http://cmsdoc.cern.ch/cms/production/www/cgi/SQL/List_RUNtable_forBrowsing.php";
+string PubDB::getPubDBInfo =  "get-pubdb-analysisinfo.php";
+string PubDB::findMotherPHP  =  "http://cmsdoc.cern.ch/cms/production/www/cgi/SQL/CollectionTree.php";
+
+string PubDB::tmp_curl_string;
 
 size_t PubDB::curl_fun(void *ptr, size_t size, size_t nmemb, void *stream){
     char *ch = static_cast<char*>(ptr);
@@ -13,12 +19,11 @@ size_t PubDB::curl_fun(void *ptr, size_t size, size_t nmemb, void *stream){
     return size*nmemb;
   }
 
-string PubDB::findChain(const string &findMotherPHP, const string &cid){
+bool PubDB::download(const string &url){
   PubDB::tmp_curl_string.clear(); //must put it here, curl sometime retrieves line by line 
   CURL *curl;
   curl = curl_easy_init();
   if (curl) {
-    const string url=findMotherPHP+"?cid="+cid;
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, PubDB::curl_fun);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
@@ -27,50 +32,45 @@ string PubDB::findChain(const string &findMotherPHP, const string &cid){
     curl_easy_perform(curl);
     double connectTime(0);
     curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &connectTime);
-    if(connectTime == 0 ) {
-    if(Log::level()>2) 
-      cout << "???? this web site has no response within 10 seconds, so stop connecting"<<endl;
-    }
     curl_easy_cleanup(curl);
+    if(connectTime == 0 ) {
+      if(Log::level()>2) 
+	cout << "???? this web site has no response within 10 seconds, so stop connecting"<<endl;
+      return false;
+    }
+    return true;
+  }else{
+    return false;
   }
+}
+
+string PubDB::findChain(const string &cid){
+  const string url=findMotherPHP+"?cid="+cid;
+  if(!download(url))
+    return "";
   string RefDB_string = PubDB::tmp_curl_string;
 
   if(RefDB_string.find(cid)==string::npos){
-    return "0";
+    return "";
   }
   string::size_type first = RefDB_string.find("Type=");
   if(first==string::npos){
     cerr<<"???? Something wrong with the web "<<findMotherPHP<<endl;
-    return "0";
+    return "";
   }
   string::size_type second = RefDB_string.find(",", first);
   if(second==string::npos){
-    return "0";
+    return "";
   }
   string chain = RefDB_string.substr(first+5, second-first-5);
   return chain;
 }
 
-string PubDB::getMotherOwner(const string &findMotherPHP, const string &thisID){
-  PubDB::tmp_curl_string.clear(); //must put it here, curl sometime retrieves line by line 
-  CURL *curl;
-  curl = curl_easy_init();
-  if (curl) {
-    const string url=findMotherPHP+"?cid="+thisID;
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, PubDB::curl_fun);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-    if(Log::level()>4) 
-       cout << " ... Downloading " << url  <<endl;
-    curl_easy_perform(curl);
-    double connectTime(0);
-    curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &connectTime);
-    if(connectTime == 0 ) {
-      if(Log::level()>2) 
-	cout << "???? this web site has no response within 10 seconds, so stop connecting"<<endl;
-    }
-    curl_easy_cleanup(curl);
-  }
+string PubDB::getMotherOwner(const string &thisID){
+  const string url=findMotherPHP+"?cid="+thisID;
+  if(!download(url))
+    return "";
+
   string RefDB_string = PubDB::tmp_curl_string;
 
   if(RefDB_string.find("ID=")==string::npos){
@@ -90,26 +90,10 @@ string PubDB::getMotherOwner(const string &findMotherPHP, const string &thisID){
   return motherOwner;
 }
 
-string PubDB::get_ID_from_RefDB( const string &aRefDB, const string &aOwner, const string &aDataset){  
-  PubDB::tmp_curl_string.clear(); //must put it here, curl sometime retrieves line by line 
-  CURL *curl;
-  curl = curl_easy_init();
-  if (curl) {
-    const string url=aRefDB+"?Owner="+aOwner+"&Dataset="+aDataset;
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, PubDB::curl_fun);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-    if(Log::level()>4) 
-      cout << " ... Downloading " << url  <<endl;
-    curl_easy_perform(curl);
-    double connectTime(0);
-    curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &connectTime);
-    if(connectTime == 0 ) {
-      if(Log::level()>2) 
-	cout << "???? this web site has no response within 10 seconds, so stop connecting"<<endl;
-    }
-    curl_easy_cleanup(curl);
-  }
+string PubDB::get_ID_from_RefDB(const string &aOwner, const string &aDataset){  
+  const string url=RefDB+"?Owner="+aOwner+"&Dataset="+aDataset;
+  if(!download(url))
+    return "";
   string RefDB_string = PubDB::tmp_curl_string;
    if(RefDB_string.find(":")==string::npos){
      return "0";
@@ -122,27 +106,11 @@ string PubDB::get_ID_from_RefDB( const string &aRefDB, const string &aOwner, con
   return ID;
 }
 
-vector<string> PubDB::get_all_PubDbs_from_centralPubDB(const string &aCentralPubDB, const string &aCollectionID){
-  PubDB::tmp_curl_string.clear(); //must put it here, curl sometime retrieves line by line 
-  CURL *curl;
-  curl = curl_easy_init();
-  if (curl) {
-    const string url=aCentralPubDB+"?CollID="+aCollectionID;
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, PubDB::curl_fun);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-    if(Log::level()>4) 
-      cout << " ... Downloading " << url  <<endl;
-    curl_easy_perform(curl);
-    double connectTime(0);
-    curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &connectTime);
-    if(connectTime == 0 ) {
-      if(Log::level()>2) 
-	cout << "???? this web site has no response within 10 seconds, so stop connecting"<<endl;
-    }
-    curl_easy_cleanup(curl);
-  }
+vector<string> PubDB::get_all_PubDbs_from_centralPubDB(const string &aCollectionID){
   vector<string> PubDBs;
+  const string url=centralPubDB+"?CollID="+aCollectionID;
+  if(!download(url))
+    return PubDBs;
   string centralPubDB_string = PubDB::tmp_curl_string;
 
   string::size_type index = centralPubDB_string.find(aCollectionID);
@@ -165,50 +133,18 @@ vector<string> PubDB::get_all_PubDbs_from_centralPubDB(const string &aCentralPub
 }
 
 string PubDB::get_info_of_aPubDB(const string &aPubDB, const string &aCollectionID){
-  PubDB::tmp_curl_string.clear(); //must put it here, curl sometime retrieves line by line 
-  CURL *curl;
-  curl = curl_easy_init();
-  if (curl) {
-    const string url=aPubDB+"?CollID="+aCollectionID;
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, PubDB::curl_fun);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-    if(Log::level()>4) 
-      cout << " ... Downloading " << url  <<endl;
-    curl_easy_perform(curl);
-    double connectTime(0);
-    curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &connectTime);
-    if(connectTime == 0 ) {
-      if(Log::level()>2) 
-	cout << "???? this web site has no response within 10 seconds, so stop connecting"<<endl;
-    }
-    curl_easy_cleanup(curl);
-  }
+  const string url=aPubDB+getPubDBInfo+"?CollID="+aCollectionID;
+  if(!download(url))
+    return "";
   string site_string = PubDB::tmp_curl_string;
   return site_string;
 }
 
-vector<int> PubDB::getAllRuns(const string &aListRuns, const string &aDataset, const string &aCollID){
+vector<int> PubDB::getAllRuns(const string &aDataset, const string &aCollID){
   vector<int> allRuns;
-  PubDB::tmp_curl_string.clear(); //must put it here, curl sometime retrieves line by line 
-  CURL *curl;
-  curl = curl_easy_init();
-  if (curl) {
-    const string url=aListRuns+"?DatasetName="+aDataset+"&CollectionID="+aCollID+"&Nb=999999";
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, PubDB::curl_fun);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
-    if(Log::level()>4) 
-      cout << " ... Downloading " << url  <<endl;
-    curl_easy_perform(curl);
-    double connectTime(0);
-    curl_easy_getinfo(curl, CURLINFO_TOTAL_TIME, &connectTime);
-    if(connectTime == 0 ) {
-      if(Log::level()>2) 
-	cout << "???? this web site has no response within 10 seconds, so stop connecting"<<endl;
-    }
-    curl_easy_cleanup(curl);
-  }
+  const string url=listRuns+"?DatasetName="+aDataset+"&CollectionID="+aCollID+"&Nb=999999";
+  if(!download(url))
+    return allRuns;
   const string &web = PubDB::tmp_curl_string;
   string key = "RunNum"+aCollID;
   string::size_type keyIndex = web.find(key);
@@ -277,6 +213,12 @@ string PubDB::getSubString(const string &aString, string::size_type aIndex, cons
   }
 }
 
+string PubDB::get_value(const string &aString, const string &name){
+  string::size_type begin = aString.find(name)+name.length()+1;
+  string::size_type end = aString.find("\n",begin);
+  return aString.substr(begin, end-begin);
+}
+
 vector<string> PubDB::vectorMergeUnique(const vector<string> &a, const vector<string> &b){
   vector<string> tmp = a;
   tmp.insert(tmp.end(), b.begin(), b.end());
@@ -286,3 +228,5 @@ vector<string> PubDB::vectorMergeUnique(const vector<string> &a, const vector<st
   vector<string> vtemp(ltmp.begin(), ltmp.end());
   return vtemp;
 }
+
+

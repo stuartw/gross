@@ -15,6 +15,10 @@ Executable = "ExDSTStatistics";
 Orcarc = "/afs/cern.ch/user/s/swakef/gross-v0_4_0/orcarc";
 Arguments = "";
 
+#If not specifed takes first and last from RefDB
+#FirstRun = "66100021";
+#LastRun = "66100025";
+
 #For job Spliting - how many runs to analyze in each job
 RunsPerJob = "4";
 
@@ -24,7 +28,7 @@ OutFileSuffix = "myHiggsAnalysis";
 #Input data - anything other than orcarc and exe/libs
 #InputSandbox  = {"input_data_file"};
 
-#Output data - ie root files, returned to local file system (fro grid and local jobs)
+#Output data - ie root files, returned to local file system (from grid and local jobs)
 OutputSandbox = {"dststatistics.aida"};
 
 #Name for std output and error
@@ -36,26 +40,14 @@ StdError      = "mystandarderr.err";
 
 #Note any options here not known to GROSS will be passed down to BOSS and eventually to the scheduler
 
-#LCG
- #saves output to grid SE
- #OutputFileLFN = {"output_file_to_grid.root"};
-
- #Grid Requirments for site matching -ie redhat 7.3 or SLC3 or min time for jobs(seconds)
- #Requirements = (other.GlueCEPolicyMaxCPUTime > 100);
- #Requirements = other.GlueCEUniqueID=="cmsboce1.bo.infn.it:2119/jobmanager-lcglsf-infinite";
-
- #Location of files that tell edg command how to submit
- #comment out if on lxplus and you have sourced 
- #RBconfigVO= {"/home/stuartw/gross-v0_4_0/example/RBlcg2cms_edg_wl_ui.conf "};
- #RBconfig= {"/home/stuartw/gross-v0_4_0/example/RBlcg2cms_edg_wl_ui_cmd_var.conf "};
-
- #other fields
- #retries
- #linux 7.3 etc
-
-#Local Batch systems
+#Local Batch systems (ie LSF or PBS)
 
  #Need scram location not needed in grid jobs 
-Scram = "/afs/cern.ch/cms/utils/scram";
-
+ Scram = "/afs/cern.ch/cms/utils/scram";
+ 
+ #LSF queue to submit to 
+ LSFQueue = "1nd";
+ 
+ #Any extra pool catalogs not in PubDB - full POOL contact string
+ ExtraPoolCatalogs = {"xmlcatalog_http://cmsdoc.cern.ch/cms/production/publish/PRS/DC04/jm_2x1033PU761_TkMu_2_g133_OSC/jm03b_qcd_50_80/POOL_Catalogue_PCP.jm_2x1033PU761_TkMu_2_g133_OSC.jm03b_qcd_50_80.xml", "xmlcatalog_file:/home/stuartw/gross-v0_4_1/example/POOL_Catalogue_PCP.jm_2x1033PU761_TkMu_2_g133_OSC.jm03b_qcd_50_80.xml"};
 

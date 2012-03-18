@@ -12,9 +12,10 @@ fi
 TASK=$1
 OUTPUT=$2 
 LOG=${OUTPUT}/gross_task_${TASK}_retrieve.log
-INTERVAL=3600 #time between retrievals in seconds
+INTERVAL=60 #time between retrievals in seconds
 JOBSLEFT=0
-LENGTH=12 #number of time to run multiply by $INTERVAL to get time script will run for
+LENGTH=360 #number of time to run multiply by $INTERVAL to get time script will run for
+NOW=${LENGTH}
 
 if [ -f $LOG ]; then
   rm -f $LOG
@@ -25,7 +26,9 @@ echo "===> Starting GROSS auto retrieval of task $TASK on" `hostname` "at" `date
 
 while [ 1 ]
 do
-  out=`gross o -taskId $TASK -oDir $OUTPUT -cont`
+  #out=`
+  gross o -taskId $TASK -oDir $OUTPUT -cont &> /dev/null 
+  #`
   JOBSLEFT=$?
   
   if [ $JOBSLEFT -eq 0 ]; then
@@ -34,7 +37,7 @@ do
     echo `date`": ${JOBSLEFT} Job(s) output currently unavailable - will retry again in $INTERVAL seconds time" >> $LOG
   fi
  
-  NOW=`echo "$LENGTH - 1" | bc`
+  NOW=`echo "$NOW - 1" | bc`
   if [ $NOW -le 0 ];then
     echo "===> Aborting retievals at "`date` >> $LOG
     exit 1

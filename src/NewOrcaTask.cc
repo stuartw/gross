@@ -22,22 +22,45 @@ int NewOrcaTask::split(){
     return EXIT_FAILURE;
   }
   
-  //Initialise catalogue - this will create temporary local cat
+  //Initialise catalogue - find all runs
   physCat(new PhysCat(sOwner, sDataset, sDataChain));  //deleted in ~NewOrcaTask
+  vector<int> runs_ = physCat()->getAllRuns();
+  if (runs_.empty()) {
+    cerr<<"NewOrcaTask::split() Error: cannot create jobs - no runs found for owner=" << sOwner << " Dataset=" << sDataset <<endl;
+    return EXIT_FAILURE;
+  }    
   
   int runsPerJob = atoi((userSpec()->read("RunsPerJob")).c_str());
-  if (runsPerJob<=0) { 
+  int FirstRun = atoi((userSpec()->read("FirstRun")).c_str());
+  int LastRun = atoi((userSpec()->read("LastRun")).c_str());
+  if (runsPerJob<=0) {
     if(Log::level()>0) cout<< "NewOrcaTask::split() Warning: RunsPerJob not correctly defined - set to default value (1)"<<endl;
     runsPerJob=1;
   }
+  if (FirstRun<=0||count(runs_.begin(), runs_.end(),FirstRun)==0) {
+    cout<< "NewOrcaTask::split() Warning: FirstRun (" << FirstRun << ") not in list from RefDB - set to " << runs_.front() <<endl;
+    FirstRun=runs_.front();
+  }
+  if (LastRun<=0||count(runs_.begin(), runs_.end(),LastRun)==0) {
+    cout<< "NewOrcaTask::split() Warning: LastRun (" << LastRun << ") not in list from RefDB - set to "<< runs_.back() << endl;
+    LastRun=runs_.back();
+  }
+  if (FirstRun>LastRun) {
+    cerr << "NewOrcaTask::split() Error: FirstRun is a larger number than LastRun" <<endl;
+    return EXIT_FAILURE;
+  }
+    
+  //get all runs - then keep only the ones needed, assume a sorted vector.
+  vector<int>::const_iterator first = find(runs_.begin(), runs_.end(), FirstRun);
+  vector<int>::const_iterator last = find(runs_.begin(), runs_.end(), LastRun);
+  vector<int> runs2_(first, ++last);  
   
-  vector<int> runs_ = physCat()->getAllRuns();
   int jobId=1;
-  for(vector<int>::const_iterator i = runs_.begin(); i<runs_.end()  ; i+= runsPerJob) {
+  for(vector<int>::const_iterator i = runs2_.begin(); i<runs2_.end()  ; i+= runsPerJob) {
     //create sub vector of runs specific to that job - if not enough runs left then make job from however many are left
-    vector<int> myRuns; 
-    if (runs_.end()>i+runsPerJob)  myRuns=vector<int>(i, i+runsPerJob);
-    else  myRuns=vector<int>(i, i+(runs_.end()-i));
+    vector<int> myRuns; //must be visible outside if loop below
+    if (runs2_.end()>i+runsPerJob) myRuns = vector<int>(i, i+runsPerJob);
+    else  myRuns = vector<int>(i, i+(runs2_.end()-i));
   
     if(Log::level()>-1) cout <<"Creating job with id " << jobId << " for data selection (runs) " << myRuns <<endl;
     
@@ -47,7 +70,6 @@ int NewOrcaTask::split(){
     jobs_.push_back(pJ);   //deleted in ~Task
     jobId++;
   }
-
   if(jobs_.empty()) {
     cerr<<"NewOrcaTask::split() Error: cannot create jobs - no jobs to create"<<endl;
     return EXIT_FAILURE;

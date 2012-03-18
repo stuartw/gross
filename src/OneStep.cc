@@ -57,24 +57,19 @@ int OneStep::execute() {
   //Logging Verbosity
   Log::level(atoi((opt_["-logLevel"].c_str())));
   if(Log::level()>0) cout <<"Logging Level Set to Verbose level "<<Log::level()<<endl;   
-	
+
+  //Initialise Db (if necessary)
+  if(initDb()) return EXIT_FAILURE;
+  
   //do Job preparation
   prepare_->acceptOptions(opt_);
   if(prepare_->execute()) {
     cerr << "Error: Unable to prepare task" <<endl;
     return EXIT_FAILURE;
   }
- 
-  //retrieve taskId from DB
-  taskId = 0;
-  taskId = LocalDb::instance()->maxCol("Analy_Task","ID");
-  if (!taskId) {
-    cerr << "Error: Unable to retreive task from database" << endl;
-    return EXIT_FAILURE;
-  }
 
   ostringstream os;
-  os << taskId;
+  os << prepare_->taskId();
   opt_["-taskId"] = os.str();
  
   //submit task

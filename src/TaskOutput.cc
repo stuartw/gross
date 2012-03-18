@@ -82,6 +82,9 @@ int TaskOutput::init(int myTaskId, int minJobId /*=0*/, int maxJobId /*=0*/) {
 int TaskOutput::setFinJobs() {
   copy(allJobs_.begin(), allJobs_.end(), back_inserter(finJobs_));
   BossIf myBossIf(task_);
+  Range jobRange(minJob_, maxJob_);
+  if(myBossIf.setJobs(jobRange)) return EXIT_FAILURE;
+  myBossIf.rangeStatus(jobRange);
   finJobs_.erase(remove_if(finJobs_.begin(), finJobs_.end(),
                            finStatus(&myBossIf)), finJobs_.end());
 

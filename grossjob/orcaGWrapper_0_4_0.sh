@@ -42,7 +42,7 @@ extvble=`cat ${STEERFILE} | awk '{print $1}' | sort | uniq`
 for vble in ${extvble}; do
   #comm=`grep ${vble} ${STEERFILE} | awk '{print $2}'`
   comm=`grep ${vble} ${STEERFILE} | awk -F"${vble} " '{print $2}'`
-  vble=`echo $vble | sed  -r 's/\./_/g'` #will remove "." from hostname - not allowed in exported variable
+  vble=`echo $vble | sed  -r 's/\./_/g' | sed -r 's/\-/_/g'` #will remove "." and "-" from hostname - not allowed in exported variable  
   export $vble="$comm"
   echo "Setting variable from external steering file:" ${vble} ${comm[*]}
 done
@@ -83,7 +83,7 @@ workDir=`pwd`
 
 #find VO of user and CE
 export VO=`edg-brokerinfo getVirtualOrganization`
-export CE=`edg-brokerinfo getCE | sed  -r 's/\./_/g' | awk -F":" '{print $1}'` #remove "." to be compatable with exported variable
+export CE=`edg-brokerinfo getCE | sed  -r 's/\./_/g' | sed -r 's/\-/_/g' | awk -F":" '{print $1}'` #remove "." to be compatable with exported variable
 
 #add current directory to path
 export PATH="$PATH":`pwd`
@@ -128,6 +128,17 @@ cd ${workDir}
 #  fi
 #fi
 
+#Add any local POOL cats to PubDB ones
+for cat in ${ExtraPoolCatalogs}; do
+  if [ `echo ${cat} | grep -c "xmlcatalog_file:"` -ge 1 ]; then
+    #local file
+    localCat=`basename ${cat}`
+    InputFileCatalogURL="${InputFileCatalogURL} xmlcatalog_file:./${localCat}"
+  else
+    #non local
+    InputFileCatalogURL="${InputFileCatalogURL} ${cat}"
+  fi
+done
 
 #locate POOL catalog - download from remote server if neccesary
 XMLcats=`env | grep $CE | cut -d"=" -f2`
@@ -190,7 +201,7 @@ if [ ${missingLibs} -ne 0 ]; then
   exit -1
 fi
 
-printINFO "with command ${userExec} -c ${Orcarc} ${Arguments}"
+printCHECKPOINT "Running ${userExec} -c ${Orcarc} ${Arguments}"
 ${userExec} -c ${Orcarc} ${Arguments}         ## Run Executable
 orcaStatus=$?
 
@@ -200,17 +211,24 @@ filelist="${RemoteDataOutputFile}"
 for filename in ${filelist}; do
   LFN=${filename}${Suffix}
   if [ -a ${filename} ]; then
-   exists=`edg-rm --vo $VO lr lfn:${LFN} | grep -c "Lfn does not exist"`
-    if [ $exists -ne 0 ]; then
-      GUID=`edg-replica-manager --vo $VO cr file://${workDir}/$filename --logical-file-name lfn:${LFN}`
-      if [ $? -eq 0 ]; then
-        printINFO "Copied $filename with LFN $filename$Suffix to GUID $GUID"
+    if [ -z ${OutputSE} ]; then
+     exists=`edg-rm --vo $VO lr lfn:${LFN} | grep -c "Lfn does not exist"`
+      if [ $exists -ne 0 ]; then
+        GUID=`edg-replica-manager --vo $VO cr file://${workDir}/$filename --logical-file-name lfn:${LFN}`
+        if [ $? -eq 0 ]; then
+          printINFO "Copied $filename with LFN $filename$Suffix to GUID $GUID"
+        else
+          printERROR "Unable to copy file $filename to local SE"
+          echo $GUID
+        fi
       else
-        printERROR "Unable to copy file $filename to local SE"
-        echo $GUID
+        printERROR "LFN ${LFN} already exists in catalogue"
       fi
     else
-      printERROR "LFN ${LFN} already exists in catalogue"
+      globus-url-copy file://`pwd`/${filename} gsiftp://${OutputSE}${Suffix}
+      if [ $? -ne 0 ]; then
+        printERROR "Error when copying ${filename} to ${OutputSE}"
+      fi  
     fi
   else
     printERROR "RemoteDataOutputFile $filename not found"
@@ -226,6 +244,7 @@ for filename in ${data}; do
      cp ${filename} ${STARTDIR}/${filename}${Suffix}
    else
      printERROR "Output file not found ${filename}"
+     touch ${STARTDIR}/${filename}${Suffix}
    fi
 done
 

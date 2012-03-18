@@ -106,6 +106,9 @@ int OrcaGWrapper::steer(){
   for (set<string>::const_iterator i=(job_->outGUIDs()).begin(); i!= (job_->outGUIDs()).end(); i++)
     osbuff<<"RemoteDataOutputFile " << (*i) <<endl;
 
+  const string sSE = userSpec_->read("OutputSE");
+  if(!sSE.empty()) osbuff << "OutputSE " << sSE <<endl;
+  
   //PubDB POOL catalogue contact strings
   vector<Site*> sites = job_->sites();
   for (vector<Site*>::const_iterator i=sites.begin(); i!=sites.end(); i++) {
@@ -116,7 +119,22 @@ int OrcaGWrapper::steer(){
       osbuff << " " << *i;
     }
   }
+  osbuff << endl;
 
+  //add any extrea POOL cats
+  sVS.clear();
+  userSpec_->read("ExtraPoolCatalogs", sVS);
+  if (!sVS.empty()) osbuff << "ExtraPoolCatalogs ";
+  for (vector<string>::const_iterator i=sVS.begin(); i!= sVS.end(); i++) {
+    osbuff << *i << " ";
+  }
+  osbuff << endl;
+
+  //add scram variables
+  const string sSCRAM = userSpec_->read("SCRAM_ARCH");
+  if(!sSCRAM.empty()) osbuff << "SCRAM_ARCH " << sSCRAM <<endl;
+	  
+  //save
   steer_=osbuff.str();
   return EXIT_SUCCESS;
 }

@@ -44,7 +44,7 @@ printCHECKPOINT "Reading steering file"
 extvble=`cat ${STEERFILE} | awk '{print $1}' | sort | uniq`
 for vble in ${extvble}; do
   comm=`grep ${vble} ${STEERFILE} | awk -F"${vble} " '{print $2}'`
-  vble=`echo $vble | sed  -r 's/\./_/g'` #will remove "." from hostname - not allowed in exported variable
+  vble=`echo $vble | sed  -r 's/\./_/g' | sed -r 's/\-/_/g'` #will remove "." and "-" from hostname - not allowed in exported variable
   export $vble="$comm"
   echo "Setting variable from external steering file:" ${vble} ${comm[*]}
 done
@@ -104,9 +104,20 @@ done
 cp * ${Orcarc} ${workDir}/.
 cd ${workDir}
 
+#Add any local POOL cats to PubDB ones
+for cat in ${ExtraPoolCatalogs}; do
+  if [ `echo ${cat} | grep -c "xmlcatalog_file:"` -ge 1 ]; then
+    #local file
+    localCat=`basename ${cat}` 
+    InputFileCatalogURL="${InputFileCatalogURL} xmlcatalog_file:./${localCat}"
+  else
+    #non local 
+    InputFileCatalogURL="${InputFileCatalogURL} ${cat}" 
+  fi
+done 
 
 #locate POOL catalog - download from remote server if neccesary
-export DOMAIN=`dnsdomainname | sed  -r 's/\./_/g' | awk -F":" '{print $1}'` #remove "." to be compatable with exported variable
+export DOMAIN=`dnsdomainname | sed  -r 's/\./_/g' | sed -r 's/\-/_/g' | awk -F":" '{print $1}'` #remove "." to be compatable with exported variable
 XMLcats=`env | grep $DOMAIN | cut -d"=" -f2`
 for XMLcat in ${XMLcats}; do
   printINFO "Found POOL catalog ${XMLcat}"
@@ -166,7 +177,7 @@ if [ ${missingLibs} -ne 0 ]; then
   exit -1
 fi
 
-printCHECKPOINT "with command ${userExec} -c ${Orcarc} ${Arguments}"
+printCHECKPOINT "Running ${userExec} -c ${Orcarc} ${Arguments}"
 ${userExec} -c ${Orcarc} ${Arguments}         ## Run Executable
 orcaStatus=$?
 
@@ -175,12 +186,13 @@ orcaStatus=$?
 printCHECKPOINT "Copying output files"
 data="${OutFile}"
 for filename in ${data}; do
-   if [ -a ${filename} ]; then
-     printINFO "Copying ${filename} to output directory"
-     cp ${filename} ${STARTDIR}/${filename}${Suffix}
-   else
-     printERROR "Output file not found ${filename}"
-   fi
+  if [ -a ${filename} ]; then
+    printINFO "Copying ${filename} to output directory"
+    cp ${filename} ${STARTDIR}/${filename}${Suffix}
+  else
+    printERROR "Output file not found ${filename}"
+    touch ${STARTDIR}/${filename}${Suffix} 
+  fi
 done
 
 cd $STARTDIR

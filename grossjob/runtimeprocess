@@ -2,7 +2,12 @@
 
 $|=1;
 while ( <STDIN> ) {
-  
+
+ if($_ =~ /.*Reading SimSignal event\s+(.*)/)  {
+      $val = $1;
+      print "event = $val\n";
+  } 
+
   if($_ =~ /.*wrapper:CHECKPOINT:\s+(.*)/)  {
       $val = $1;
       print "last_checkpoint = $val\n";

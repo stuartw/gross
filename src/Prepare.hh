@@ -11,6 +11,9 @@ public:
   int execute();
   void printUsage() const;
   string workingDir();
+  int taskId() const { return taskId_; };
+private:
+  int taskId_;
 };
 
 

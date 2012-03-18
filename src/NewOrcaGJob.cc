@@ -261,6 +261,18 @@ int NewOrcaGJob::setLocalInFiles(){
     vLocalInFiles_.insert(new File(*it));
   }    
   
+  //also local pool file catalogs
+  vS.clear();
+  task_->userSpec()->read("ExtraPoolCatalogs", vS);
+  for(vector<string>::const_iterator it = vS.begin(); it!=vS.end(); it++) {
+    if (stringSearch(*it, "xmlcatalog_file:")) { //only add local files
+      int pos = it->find("xmlcatalog_file:") + 16;
+      int length = it->length() - pos;
+      if(Log::level()>2) cout << "NewOrcaLocJob::setLocalInFiles() reading Pool Catalog name:" << (*it) << endl;
+      vLocalInFiles_.insert(new File(it->substr(pos,length)));
+    }
+  }
+  
   for(set<File*>::const_iterator it=vLocalInFiles_.begin(); it!=vLocalInFiles_.end(); it++) {
     if ( !(*it)->exists() ) {
       cerr << "NewOrcaGJob::setLocalInFiles() Error unable to find file: " << (*it)->fullHandle() << endl;
@@ -325,8 +337,11 @@ int NewOrcaGJob::setSites() {
   if(Log::level()>2) cout << "NewOrcaGJob::setSites() finding PubDBs with this dataset" << endl;
   const NewOrcaTask* mytask_ = dynamic_cast<const NewOrcaTask*> (task());
   vSites = mytask_->physCat()->getSites4MyRuns(dataSelect());
-  if (vSites.empty()) {
-    cerr << "NewOrcaGJob::setSites() Error No PubDb's found with this dataset" << endl;
+  vector<string> PoolCatFiles;
+  task_->userSpec()->read("ExtraPoolCatalogs", PoolCatFiles);
+  if(Log::level()>2&&!PoolCatFiles.empty()) cout << "NewOrcaGJob::setSites() using POOL catalog " << PoolCatFiles << endl;
+  if (vSites.empty()&&PoolCatFiles.empty()) {
+    cerr << "NewOrcaGJob::setSites() Error No PubDb's found for this job and no POOL catalogs specified" << endl;
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;

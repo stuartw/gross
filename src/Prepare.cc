@@ -31,6 +31,8 @@ void Prepare::printUsage() const
 }
 int Prepare::execute() {
 
+  taskId_ = 0; //cant do in constructor
+
   //Logging Verbosity
   Log::level(atoi((opt_["-logLevel"].c_str())));
   if(Log::level()>0) cout <<"Logging Level Set to Verbose level "<<Log::level()<<endl;
@@ -48,10 +50,10 @@ int Prepare::execute() {
   Task* myTask=0;
 
   //.. either from database:
-  int myTaskId=atoi((opt_["-taskId"]).c_str());	  
-  if(myTaskId) {
-    TaskFactory::facType(getFacType(myTaskId));
-    myTask=(TaskFactory::instance())->makeTask(myTaskId);
+  taskId_=atoi((opt_["-taskId"]).c_str());	  
+  if(taskId_) {
+    TaskFactory::facType(getFacType(taskId_));
+    myTask=(TaskFactory::instance())->makeTask(taskId_);
   }
   //.. or from new user spec
   else
@@ -71,9 +73,9 @@ int Prepare::execute() {
   //Save task and jobs to db
   if(opt_["-save"]=="TRUE") {
     cout <<"Saving task info to db"<<endl;
-    myTaskId = myTask->save();
-    if(!myTaskId) return EXIT_FAILURE;
-    cout <<"Task and Job info saved to database with Task ID "<< myTaskId <<endl;
+    taskId_ = myTask->save();
+    if(!taskId_) return EXIT_FAILURE;
+    cout <<"Task and Job info saved to database with Task ID "<< taskId_ <<endl;
   }
   if(myTask->delSubFiles()) return EXIT_FAILURE;
 

@@ -12,12 +12,6 @@ class PhysCat;
 
 class PhysCat{
 public:
-  static string RefDB;
-  static string centralPubDB;
-  static string listRuns;
-  static string getPubDBInfo;
-  static string findMotherPHP;
-
   PhysCat(const string &owner, const string &dataset);
   PhysCat(const string &owner, const string &dataset, const string &chain);
   ~PhysCat(){}
@@ -49,6 +43,5 @@ private:
   bool createSites_from_siteSet(vector<Site*> &sites);
   bool set_Sites_from_PubDBs(const string &collID, const vector<string> &pubDBs, vector<Site*> &sites);
   bool set_a_site(const string &url, const string &aSiteString, const string &aFileType, Site &aSite);
-  string get_value(const string &aString, const string &name)const;
 };
 #endif //PHYSCAT_H

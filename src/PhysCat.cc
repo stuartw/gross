@@ -6,26 +6,14 @@
 
 using namespace std;
 
-string PhysCat::RefDB = "http://cmsdoc.cern.ch/cms/production/www/PubDB/GetIdCollection.php";
-string PhysCat::centralPubDB = "http://cmsdoc.cern.ch/cms/production/www/PubDB/GetPublishedCollectionInfoFromRefDB.php";
-string PhysCat::listRuns = "http://cmsdoc.cern.ch/cms/production/www/cgi/SQL/List_RUNtable_forBrowsing.php";
-string PhysCat::getPubDBInfo =  "get-pubdb-analysisinfo.php";
-string PhysCat::findMotherPHP  =  "http://cmsdoc.cern.ch/cms/production/www/cgi/SQL/CollectionTree.php";
-
 PhysCat::PhysCat(const string &owner, const string &dataset){ 
   m_owner = owner; 
   m_dataset = dataset; 
-  string collectionID =  PubDB::get_ID_from_RefDB(RefDB, m_owner, m_dataset);
+  string collectionID =  PubDB::get_ID_from_RefDB(m_owner, m_dataset);
   m_collectionID = collectionID;
-  m_chain = PubDB::findChain(findMotherPHP,collectionID);
+  m_chain = PubDB::findChain(collectionID);
   m_chain_combined = m_chain;
   m_sites_ready = false; 
-//   if(Log::level()>2){
-//     cout<<">>>> Dataset="<<m_dataset<<endl;
-//     cout<<">>>> Owner="<<m_owner<<endl;
-//     cout<<"<<<< CollectionID="<<m_collectionID<<endl;
-//     cout<<"<<<< Type="<<m_chain<<endl;
-//   }
 }
 
 PhysCat::PhysCat(const string &owner, const string &dataset, const string &chain){ 
@@ -70,7 +58,7 @@ PhysCat::PhysCat(const string &owner, const string &dataset, const string &chain
   }
 }
 
-PhysCat *PhysCat::physCat_of_any_chain(const string &owner, const string &dataset, const string &chain){  
+PhysCat *PhysCat::physCat_of_any_chain(const string &owner, const string &dataset, const string &chain){
   PhysCat *phy;
   if(chain==""){
     phy = new PhysCat(owner,dataset);
@@ -79,7 +67,7 @@ PhysCat *PhysCat::physCat_of_any_chain(const string &owner, const string &datase
     string theChain = physCat.getChain();
     PhysCat *mother = &physCat;
     while(theChain!=chain){
-      string mother_owner = PubDB::getMotherOwner(findMotherPHP, mother->getCollectionID());
+      string mother_owner = PubDB::getMotherOwner(mother->getCollectionID());
       if(mother_owner == ""){
 	if(Log::level()>4)
 	  cout<<"!!!! Not found  mother Owner for Dataset = "<<dataset<<" Owner = "<<mother->getOwner()<<endl;
@@ -139,7 +127,7 @@ PhysCat *PhysCat::physCat_cross_from_two_chain(PhysCat *original, const string &
 
 vector<int> PhysCat::getAllRuns(){
   if(!m_sites_ready){ createAllSites(); }
-  vector<int> allRuns = PubDB::getAllRuns(listRuns, m_dataset, getCollectionID());
+  vector<int> allRuns = PubDB::getAllRuns(m_dataset, getCollectionID());
   return allRuns;
 }
 
@@ -173,6 +161,8 @@ vector<Site*> PhysCat::getAllSites(){
 }
 
 bool PhysCat::createSites_from_siteSet(vector<Site*> &sites){
+  if(Log::level()>4) 
+    cout <<"#### "<<"create sites from the already seledted PubDBs"<<endl;
   m_sites_ready=true;
   if(Log::level()>2) 
     cout << ">>>> dataset="<<m_dataset<<" owner=" <<m_owner <<endl;
@@ -195,6 +185,8 @@ bool PhysCat::createSites_from_siteSet(vector<Site*> &sites){
 }
 
 bool PhysCat::createAllSites(){
+  if(Log::level()>4) 
+    cout <<"#### "<<"create sites from RefDB"<<endl;
   m_sites_ready=true;
   if(m_owner.length()==0||m_dataset.length()==0)
     return false;
@@ -203,13 +195,13 @@ bool PhysCat::createAllSites(){
   string collID = getCollectionID();
   if(Log::level()>2) 
     cout << "<<<< Find CollectionID=" << collID<<"  Type="<<getChain() <<endl;
-  vector<string> PubDBs = PubDB::get_all_PubDbs_from_centralPubDB(centralPubDB, collID);
+  vector<string> PubDBs = PubDB::get_all_PubDbs_from_centralPubDB(collID);
   if(PubDBs.size()==0){
     cerr<<"!!!! No PubDB found for CollectionID"<<collID<<endl; 
     return false;
   }else{
     if(Log::level()>2) 
-      cout <<"<<<< "<<PubDBs.size()<<" PubDBs of CollectionID="<<collID<<" are found from "<<centralPubDB<<endl;
+      cout <<"<<<< "<<PubDBs.size()<<" PubDBs of CollectionID="<<collID<<" are found"<<endl;
     set_Sites_from_PubDBs(collID, PubDBs, m_sites);
     return true;
   }
@@ -218,9 +210,8 @@ bool PhysCat::createAllSites(){
 bool PhysCat::set_Sites_from_PubDBs(const string &collID, const vector<string> &pubDBs, vector<Site*> &sites){
     for ( vector<string>::const_iterator i=pubDBs.begin(); i!=pubDBs.end(); i++)
       {
-	string PubDB=*i+getPubDBInfo;
-	string url=*i+getPubDBInfo+"?CollID="+collID;
-	string site_string = PubDB::get_info_of_aPubDB(PubDB, collID);
+	string url=*i+PubDB::getPubDBInfo+"?CollID="+collID;
+	string site_string = PubDB::get_info_of_aPubDB(*i, collID);
 	if ( site_string.find("FileType=Complete") != string::npos )
 	  {
 	    Site *CompleteSite = new Site;
@@ -256,24 +247,17 @@ bool PhysCat::set_a_site(const string &url, const string &aSiteString, const str
   string::size_type end_block   = aSiteString.find("FileType", begin_block+8);
   if ( end_block == string::npos ) end_block = aSiteString.length();
   string block_string = aSiteString.substr(begin_block, end_block);
-  aSite.set_FileType( get_value(block_string,"FileType") );
-  aSite.set_ValidationStatus( get_value(block_string,"ValidationStatus") );
-  aSite.set_ContactString( get_value(block_string,"ContactString") );
-  aSite.set_ContactProtocol( get_value(block_string,"ContactProtocol") );
-  aSite.set_CatalogueType( get_value(block_string,"CatalogueType") );
-  aSite.set_SE( get_value(block_string,"SE") );
-  aSite.set_CE( get_value(block_string,"CE") );
-  aSite.set_Nevents( get_value(block_string,"Nevents") );
-  aSite.set_RunRange( get_value(block_string,"RunRange") );
+  aSite.set_FileType( PubDB::get_value(block_string,"FileType") );
+  aSite.set_ValidationStatus( PubDB::get_value(block_string,"ValidationStatus") );
+  aSite.set_ContactString( PubDB::get_value(block_string,"ContactString") );
+  aSite.set_ContactProtocol( PubDB::get_value(block_string,"ContactProtocol") );
+  aSite.set_CatalogueType( PubDB::get_value(block_string,"CatalogueType") );
+  aSite.set_SE( PubDB::get_value(block_string,"SE") );
+  aSite.set_CE( PubDB::get_value(block_string,"CE") );
+  aSite.set_Nevents( PubDB::get_value(block_string,"Nevents") );
+  aSite.set_RunRange( PubDB::get_value(block_string,"RunRange") );
   return 1;
 }
-
-string PhysCat::get_value(const string &aString, const string &name)const{
-  string::size_type begin = aString.find(name)+name.length()+1;
-  string::size_type end = aString.find("\n",begin);
-  return aString.substr(begin, end-begin);
-}
-
 
 string PhysCat::getOwner(){return m_owner;}
 string PhysCat::getDataset(){return m_dataset;}

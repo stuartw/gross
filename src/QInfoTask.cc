@@ -92,6 +92,9 @@ int QInfoTask::printSumStatus() const {
   }
 
   BossIf myBossIf(task_);
+  Range jobs(minJob_, maxJob_);
+  myBossIf.setJobs(jobs);
+  myBossIf.rangeStatus(jobs);
   std::multiset<string> foundStatus;
   std::multiset<string> foundExitCode;
   for (vector<Job*>::const_iterator it = jobs_.begin(); it != jobs_.end() ; it++) {
@@ -189,7 +192,9 @@ int QInfoTask::printStatus() const {
     return EXIT_FAILURE;
   }
   BossIf myBossIf(task_);
-
+  Range jobs(minJob_, maxJob_);
+  myBossIf.setJobs(jobs);
+  myBossIf.rangeStatus(jobs);
   cout.setf(std::ios::left, std::ios::adjustfield);
 
   if(header_) cout 

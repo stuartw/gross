@@ -6,6 +6,7 @@
 class Task;
 class Job;
 #include "QInfoTask.hh"
+#include "Range.hh"
 
 /*!
   \brief BOSS interface class
@@ -21,10 +22,13 @@ class BossIf{
 public:
   BossIf(const Task* pTask);
   int submitJob(const string aSched, const string aBossJobType, const Job* pJob) const; ///<To submit an individual job within a task
-  int submitJobs(const string aSched, const string aBossJobType, int minJobId=0, int maxJobId=0);
+  int submitJobs(const string aSched, const string aBossJobType, Range jobRange);
   int submitTask(const string aSched, const string aBossJobType) const; ///<To submit all jobs within a task
+  int setJobs(Range jobRange, bool onlyFailed=false); ///< Set which jobs to submit - can specify only failed jobs (resubmission)
   const string status(const Job* pJob); ///<Returns BOSS status letter (returns "U" for failure, "N" for not submitted)
+  int rangeStatus(Range jobRange); ///< function to call boss query on whole range of jobs and populate status map
   int bossId(const Job* pJob) const; ///<Returns 0 for error, BossId for success.
+  int jobId(int bossId) const; ///<Returns 0 for error, jobId for success.
   const string schedId(const Job* pJob) const; ///<Returns "" for error, schedId for success.
   const string exitStatus(const Job* pJob) const; ///<Returns "" for error, job exit code for success.
   int killJob(const int jobId) const; ///<Returns 0 for error, 1 for success.

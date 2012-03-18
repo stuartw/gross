@@ -8,7 +8,7 @@
 #include "Task.hh"
 #include "File.hh"
 #include "CladLookup.hh"
-
+#include "ContPrint.hh"
 #include "pstream.h"
 #include "StringSpecial.hh"
 #include "PhysCat.hh"
@@ -100,8 +100,16 @@ File* DbOrcaLocJob::setTarFile() {
   }
   psub3.close();
   if(Log::level()>2) cout << "DbOrcaLocJob::setTarFile() Found SCRAM arch " << ARCH<<endl;
-  string LocalRT = getenv("LOCALRT");
-  if (ARCH==""||LocalRT=="") return 0;
+   char* pc=getenv("LOCALRT");
+   if (!pc) {
+     cerr << "DbOrcaGJob::setTarFile() error ORCA not found - please do eval `scram runtime -sh`" <<endl;
+     return 0;
+   }  
+  string LocalRT(pc);
+  if (ARCH==""||LocalRT=="") {
+    cerr << "DbOrcaLocJob::setTarFile() error ORCA not found - please do eval `scram runtime -sh`" <<endl;
+    return 0;
+  }
   string exeName = LocalRT + string("/bin/") + ARCH + string("/") + executable_;
   string libCommand = string("ldd ") + exeName;
   string cdCommand1 = string("cd ") + LocalRT + string(";");
@@ -317,8 +325,11 @@ int DbOrcaLocJob::setSites() {
   if(Log::level()>2) cout << "DbOrcaLocJob::setSites() finding PubDBs with this dataset" << endl;
   const DbOrcaTask* mytask_ = dynamic_cast<const DbOrcaTask*> (task());
   vSites = mytask_->physCat()->getSites4MyRuns(dataSelect());
-  if (vSites.empty()) {
-    cerr << "DbOrcaLocJob::setSites() Error No PubDb's found with this dataset" << endl;
+  vector<string> PoolCatFiles;
+  task_->userSpec()->read("ExtraPoolCatalogs", PoolCatFiles);
+  if(Log::level()>2&&!PoolCatFiles.empty()) cout << "DbOrcaLocJob::setSites() using POOL catalog " << PoolCatFiles << endl;
+  if (vSites.empty()&&PoolCatFiles.empty()) {
+    cerr << "DbOrcaLocJob::setSites() Error No PubDb's found with this dataset and no POOL catalogs specified" << endl;
     return EXIT_FAILURE;
   }
   return EXIT_SUCCESS;
